@@ -2,7 +2,7 @@ module MPStates
 
 export Mps, init_mps
 
-using LinearAlgebra, Random
+using LinearAlgebra, TensorOperations, Random
 
 include("./mps.jl")
 

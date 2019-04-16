@@ -109,12 +109,7 @@ function make_left_canonical(A::Vector{Array{T, 3}}) where T
         rQ = Matrix(rQ)
         Q = reshape(rQ, (size(Ai, 1), size(Ai, 2), size(rQ, 2)))
         push!(leftcan_A, Q)
-
-        # Contract R with tensor in site i+1.
-        Ai = A[i+1]
-        # TODO: join following two lines in one tensordot.
-        rAi = R*reshape(Ai, (size(Ai, 1), size(Ai, 2)*size(Ai, 3)))
-        Ai = reshape(rAi, (size(R, 1), size(Ai, 2), size(Ai, 3)))
+        @tensor Ai[a, b, c] := R[a, m]*A[i+1][m, b, c]
     end
     # Normalize and append last tensor.
     Ai ./= norm(Ai)
@@ -136,12 +131,7 @@ function make_right_canonical(A::Vector{Array{T, 3}}) where T
         rQ = Matrix(rQ)
         Q = reshape(rQ, (size(rQ, 1), size(Ai, 2), size(Ai, 3)))
         push!(rightcan_A, Q)
-
-        # Contract R with tensor in site i-1.
-        Ai = A[i-1]
-        # TODO: join following two lines in one tensordot.
-        rAi = reshape(Ai, (size(Ai, 1)*size(Ai, 2), size(Ai, 3)))*L
-        Ai = reshape(rAi, (size(Ai, 1), size(Ai, 2), size(L, 2)))
+        @tensor Ai[a, b, c] := A[i-1][a, b, m]*L[m, c]
     end
     # Normalize and append last tensor.
     Ai ./= norm(Ai)
