@@ -29,47 +29,52 @@ end
 Initialize an Mps.
 
 # Arguments:
-- `dtype::Type`: type of the Mps.
+- `mps_type::Type`: type of the Mps.
 - `L::Int`: Mps's length.
-- `name::String`: name of the Mps. Examples: "GHZ", "W", "product", "random".
+- `name::String`: name of the Mps. Examples: "GHZ", "W", "product", "random",
+    "full".
 - `d::Int=2`: physical dimension.
 """
-function init_mps(dtype::Type, L::Int, name::String, d::Int=2)
+function init_mps(mps_type::Type, L::Int, name::String, d::Int=2)
     A = Vector{Array{Float64, 3}}()
     B = Vector{Array{Float64, 3}}()
     d = 2
     D = ones(Int, L+1)
     # Build basis for constructing states.
     if name == "product"
-        M1 = zeros(dtype, 1, d, 1)
-        M1[1, 1, 1] = one(dtype)
+        M1 = zeros(mps_type, 1, d, 1)
+        M1[1, 1, 1] = one(mps_type)
         M = copy(M1)
         Mend = copy(M1)
     elseif name == "GHZ"
-        M1 = zeros(dtype, 1, 2, 2)
-        M1[1, 1, 1] = one(dtype)
-        M1[1, 2, 2] = one(dtype)
-        M = zeros(dtype, 2, 2, 2)
-        M[1, 1, 1] = one(dtype)
-        M[2, 2, 2] = one(dtype)
-        Mend = zeros(dtype, 2, 2, 1)
-        Mend[1, 1, 1] = one(dtype)
-        Mend[2, 2, 1] = one(dtype)
+        M1 = zeros(mps_type, 1, 2, 2)
+        M1[1, 1, 1] = one(mps_type)
+        M1[1, 2, 2] = one(mps_type)
+        M = zeros(mps_type, 2, 2, 2)
+        M[1, 1, 1] = one(mps_type)
+        M[2, 2, 2] = one(mps_type)
+        Mend = zeros(mps_type, 2, 2, 1)
+        Mend[1, 1, 1] = one(mps_type)
+        Mend[2, 2, 1] = one(mps_type)
     elseif name == "W"
-        M1 = zeros(dtype, 1, 2, 2)
-        M1[1, 1, 1] = one(dtype)
-        M1[1, 2, 2] = one(dtype)
-        M = zeros(dtype, 2, 2, 2)
-        M[1, 1, 1] = one(dtype)
-        M[2, 1, 2] = one(dtype)
-        M[1, 2, 2] = one(dtype)
-        Mend = zeros(dtype, 2, 2, 1)
-        Mend[2, 1, 1] = one(dtype)
-        Mend[1, 2, 1] = one(dtype)
+        M1 = zeros(mps_type, 1, 2, 2)
+        M1[1, 1, 1] = one(mps_type)
+        M1[1, 2, 2] = one(mps_type)
+        M = zeros(mps_type, 2, 2, 2)
+        M[1, 1, 1] = one(mps_type)
+        M[2, 1, 2] = one(mps_type)
+        M[1, 2, 2] = one(mps_type)
+        Mend = zeros(mps_type, 2, 2, 1)
+        Mend[2, 1, 1] = one(mps_type)
+        Mend[1, 2, 1] = one(mps_type)
     elseif name == "random"
-        M1 = rand(dtype, 1, d, 2)
-        M = rand(dtype, 2, d, 2)
-        Mend = rand(dtype, 2, d, 1)
+        M1 = rand(mps_type, 1, d, 2)
+        M = rand(mps_type, 2, d, 2)
+        Mend = rand(mps_type, 2, d, 1)
+    elseif name == "full"
+        M1 = one(mps_type)
+        M = one(mps_type)
+        Mend = one(mps_type)
     end
 
     # Join all tensors in arrays and make left- and right-canonical.
