@@ -42,6 +42,18 @@ using Test, LinearAlgebra, MPStates
     @test is_right_canonical(rightcan_A)
 
     # Test norm of canonical tensors.
-    @test isapprox(norm(leftcan_A[end]), 1.)
-    @test isapprox(norm(rightcan_A[1]), 1.)
+    @test norm(leftcan_A[end]) ≈ 1.
+    @test norm(rightcan_A[1]) ≈ 1.
+end
+
+@testset "measure occupation at one site" begin
+    L = 5
+    GHZ = init_mps(Float64, L, "GHZ")
+    @test m_occupation(GHZ, 1) ≈ 0.5
+    @test m_occupation(GHZ, 2) ≈ 0.5
+    @test m_occupation(GHZ, 5) ≈ 0.5
+    W = init_mps(Float64, L, "W")
+    @test m_occupation(W, 1) ≈ 1/L
+    @test m_occupation(W, 3) ≈ 1/L
+    @test m_occupation(W, 5) ≈ 1/L
 end
