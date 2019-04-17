@@ -1,7 +1,7 @@
 module MPStates
 
-export Mps, init_mps,
-    m_occupation
+export Mps, init_mps
+export m_occupation, contract
 
 using LinearAlgebra, TensorOperations, Random
 

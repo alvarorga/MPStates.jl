@@ -19,3 +19,16 @@ function m_occupation(psi::Mps, i::Int, s::Int=2)
     end
     return L[1, 1]
 end
+
+"""
+    contract(psi::Mps, phi::Mps)
+
+Contraction of two MPS: <psi|phi>.
+"""
+function contract(psi::Mps{T}, phi::Mps{T}) where T
+    L = Matrix{T}(I, 1, 1)
+    for i=1:psi.L
+        @tensor L[c, e] := conj(psi.A[i][b, d, e])*L[a, b]*phi.A[i][a, d, c]
+    end
+    return L[1, 1]
+end
