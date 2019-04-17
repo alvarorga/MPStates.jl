@@ -72,9 +72,9 @@ function init_mps(mps_type::Type, L::Int, name::String, d::Int=2)
         M = rand(mps_type, 2, d, 2)
         Mend = rand(mps_type, 2, d, 1)
     elseif name == "full"
-        M1 = one(mps_type)
-        M = one(mps_type)
-        Mend = one(mps_type)
+        M1 = ones(mps_type, 1, d, 1)
+        M = ones(mps_type, 1, d, 1)
+        Mend = ones(mps_type, 1, d, 1)
     end
 
     # Join all tensors in arrays and make left- and right-canonical.
