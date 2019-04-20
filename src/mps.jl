@@ -8,7 +8,7 @@
 
 Matrix product state with type T.
 
-# hAttributes:
+# Attributes:
 - `A::Vector{Array{T, 3}}`: left-canonical representation.
 - `B::Vector{Array{T, 3}}`: right-canonical representation.
 - `L::Int`: length of the Mps.
@@ -24,7 +24,7 @@ mutable struct Mps{T}
 end
 
 """
-    init_mps(dtype::Type, L::Int, name::String, d::Int=2)
+    init_mps(T::Type, L::Int, name::String, d::Int=2)
 
 Initialize an Mps.
 
