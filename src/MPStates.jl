@@ -1,7 +1,7 @@
 module MPStates
 
 export Mps, init_mps
-export m_occupation, contract
+export m_occupation, contract, ent_entropy
 export Mpo, init_hubbard_mpo
 export expected
 

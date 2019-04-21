@@ -23,3 +23,23 @@ end
     @test contract(W, product) ≈ 0.
     @test contract(full, product) ≈ 1/sqrt(2^L)
 end
+
+@testset "schmidt decomposition" begin
+    L = 4
+    GHZ = init_mps(Float64, L, "GHZ")
+    @test MPStates.schmidt_decomp(GHZ, 1) ≈ [1/sqrt(2), 1/sqrt(2)]
+    @test MPStates.schmidt_decomp(GHZ, 2) ≈ [1/sqrt(2), 1/sqrt(2)]
+    W = init_mps(Float64, L, "W")
+    @test MPStates.schmidt_decomp(W, 1) ≈ [sqrt(3)/2, 0.5]
+    @test MPStates.schmidt_decomp(W, 2) ≈ [1/sqrt(2), 1/sqrt(2)]
+end
+
+@testset "entanglement entropy" begin
+    L = 4
+    GHZ = init_mps(Float64, L, "GHZ")
+    @test ent_entropy(GHZ, 1) ≈ 1/sqrt(2)
+    @test ent_entropy(GHZ, 2) ≈ 1/sqrt(2)
+    W = init_mps(Float64, L, "W")
+    @test ent_entropy(W, 1) ≈ 0.5 - sqrt(3)/2*log2(sqrt(3)/2)
+    @test ent_entropy(W, 2) ≈ 1/sqrt(2)
+end
