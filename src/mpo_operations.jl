@@ -40,3 +40,12 @@ function expected2(Op::Mpo{T}, psi::Mps{T}) where T
     end
     return L[1, 1, 1]
 end
+
+"""
+    m_variance(Op::Mpo{T}, psi::Mps{T}) where T
+
+Measure variance: <psi|Op^2|psi> - <psi|Op|psi>^2.
+"""
+function m_variance(Op::Mpo{T}, psi::Mps{T}) where T
+    return expected2(Op, psi) - expected(Op, psi)^2
+end
