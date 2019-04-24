@@ -102,18 +102,15 @@ Take a vector of tensors and make it left-canonical.
 """
 function make_left_canonical(A::Vector{Array{T, 3}}) where T<:Number
     leftcan_A = Vector{Array{T, 3}}()
-    Ai = A[1]
+    R = ones(T, 1, 1)
     for i=1:length(A)-1
-        rA = reshape(Ai, (size(Ai, 1)*size(Ai, 2), size(Ai, 3)))
-        rQ, R = qr(rA)
-        rQ = Matrix(rQ)
-        Q = reshape(rQ, (size(Ai, 1), size(Ai, 2), size(rQ, 2)))
+        Q, R = prop_qr(R, A[i])
         push!(leftcan_A, Q)
-        @tensor Ai[a, b, c] := R[a, m]*A[i+1][m, b, c]
     end
     # Normalize and append last tensor.
-    Ai ./= norm(Ai)
-    push!(leftcan_A, Ai)
+    @tensor Aend[i, s, j] := R[i, k]*A[end][k, s, j]
+    Aend ./= norm(Aend)
+    push!(leftcan_A, Aend)
     return leftcan_A
 end
 
@@ -124,17 +121,14 @@ Take a vector of tensors and make it right-canonical.
 """
 function make_right_canonical(A::Vector{Array{T, 3}}) where T<:Number
     rightcan_A = Vector{Array{T, 3}}()
-    Ai = A[end]
+    L = ones(T, 1, 1)
     for i=length(A):-1:2
-        rA = reshape(Ai, (size(Ai, 1), size(Ai, 2)*size(Ai, 3)))
-        L, rQ = lq(rA)
-        rQ = Matrix(rQ)
-        Q = reshape(rQ, (size(rQ, 1), size(Ai, 2), size(Ai, 3)))
+        L, Q = prop_lq(A[i], L)
         push!(rightcan_A, Q)
-        @tensor Ai[a, b, c] := A[i-1][a, b, m]*L[m, c]
     end
     # Normalize and append last tensor.
-    Ai ./= norm(Ai)
-    push!(rightcan_A, Ai)
+    @tensor Aend[i, s, j] := A[1][i, s, k]*L[k, j]
+    Aend ./= norm(Aend)
+    push!(rightcan_A, Aend)
     return reverse(rightcan_A)
 end

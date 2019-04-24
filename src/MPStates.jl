@@ -11,5 +11,6 @@ include("./mps.jl")
 include("./mps_operations.jl")
 include("./mpo.jl")
 include("./mpo_operations.jl")
+include("./tensor_operations.jl")
 
 end # module MPStates
