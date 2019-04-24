@@ -33,3 +33,49 @@ function prop_lq(A::Array{T, 3}, L::Array{T, 2}, return_Q=true) where T<:Number
     Q = reshape(rQ, (size(rQ, 1), size(A, 2), size(L, 2)))
     return L2, Q
 end
+
+"""
+    prop_right2(L::Array{T, 2}, A::Array{T, 3}, B::Array{T, 3}) where T<:Number
+
+Propagate the tensor L through the tensors A, B.
+"""
+function prop_right2(L::Array{T, 2}, A::Array{T, 3}, B::Array{T, 3}) where T<:Number
+    @tensor begin
+        L1[l1, s, b] := L[l1, l2]*conj(B[l2, s, b])
+        new_L[a, b] := L1[l1, s, b]*A[l1, s, a]
+    end
+    return new_L
+end
+
+"""
+    prop_right3(L::Array{T, 3}, A::Array{T, 3},
+                M::Array{T, 4}, B::Array{T, 3}) where T<:Number
+
+Propagate the tensor L through the tensors A, M, B.
+"""
+function prop_right3(L::Array{T, 3}, A::Array{T, 3},
+                     M::Array{T, 4}, B::Array{T, 3}) where T<:Number
+    @tensor begin
+        L1[l1, l2, s2, c] := L[l1, l2, l3]*conj(B[l3, s2, c])
+        L2[l1, s1, b, c] := L1[l1, l2, s2, c]*M[l2, s1, s2, b]
+        new_L[a, b, c] := L2[l1, s1, b, c]*A[l1, s1, a]
+    end
+    return new_L
+end
+
+"""
+    prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
+                M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
+
+Propagate the tensor L through the tensors A, M1, M2, B.
+"""
+function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4}, 
+                     M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
+    @tensor begin
+        L1[l1, l2, l3, s3, d] := L[l1, l2, l3, l4]*conj(B[l4, s3, d])
+        L2[l1, l2, s2, c, d] := L1[l1, l2, l3, s3, d]*M2[l3, s2, s3, c]
+        L3[l1, s1, b, c, d] := L2[l1, l2, s2, c, d]*M1[l2, s1, s2, b]
+        new_L[a, b, c, d] := L3[l1, s1, b, c, d]*A[l1, s1, a]
+    end
+    return new_L
+end

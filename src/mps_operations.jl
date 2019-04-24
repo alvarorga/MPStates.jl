@@ -14,8 +14,7 @@ function m_occupation(psi::Mps, i::Int, s::Int=2)
     Ai = psi.A[i][:, s, :]
     L = transpose(Ai)*conj(Ai)
     for j=i+1:psi.L
-        Aj = psi.A[j]
-        @tensor L[a, b] := Aj[c, e, a]*L[c, d]*conj(Aj[d, e, b])
+        L = prop_right2(L, psi.A[j], psi.A[j])
     end
     return L[1, 1]
 end
@@ -28,7 +27,7 @@ Contraction of two MPS: <psi|phi>.
 function contract(psi::Mps{T}, phi::Mps{T}) where T
     L = Matrix{T}(I, 1, 1)
     for i=1:psi.L
-        @tensor L[c, e] := conj(psi.A[i][b, d, e])*L[a, b]*phi.A[i][a, d, c]
+        L = prop_right2(L, phi.A[i], psi.A[i])
     end
     return L[1, 1]
 end
@@ -43,11 +42,9 @@ function schmidt_decomp(psi::Mps{T}, i::Int) where T
     # The tensors 1 to i are already left-canonical in A, but we must write
     # the A tensors from i+1 to end in right-canonical form. When we do this
     # we won't need the information contained in the Q tensors.
-    L = Matrix{T}(I, size(psi.A[end], 3), size(psi.A[end], 3))
+    L = Matrix{T}(I, 1, 1)
     for j=psi.L:-1:i+1
-        @tensor lA[a, s, c] := psi.A[j][a, s, b]*L[b, c]
-        rA = reshape(lA, (size(lA, 1), size(lA, 2)*size(lA, 3)))
-        L, Q = lq(rA)
+        L = prop_lq(psi.A[j], L, false)
     end
     return svdvals!(L)
 end
