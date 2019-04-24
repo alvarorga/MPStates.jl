@@ -69,7 +69,7 @@ end
 
 Propagate the tensor L through the tensors A, M1, M2, B.
 """
-function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4}, 
+function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
                      M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
     @tensor begin
         L1[l1, l2, l3, s3, d] := L[l1, l2, l3, l4]*conj(B[l4, s3, d])
@@ -78,4 +78,50 @@ function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
         new_L[a, b, c, d] := L3[l1, s1, b, c, d]*A[l1, s1, a]
     end
     return new_L
+end
+
+"""
+    prop_left2(A::Array{T, 3}, B::Array{T, 3}, R::Array{T, 2}) where T<:Number
+
+Propagate the tensor R through the tensors A, B.
+"""
+function prop_left2(A::Array{T, 3}, B::Array{T, 3}, R::Array{T, 2}) where T<:Number
+    @tensor begin
+        R1[a, s, r2] := A[a, s, r1]*R[r1, r2]
+        new_R[a, b] := R1[a, s, r2]*conj(B[b, s, r2])
+    end
+    return new_R
+end
+
+"""
+    prop_left3(A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3},
+               R::Array{T, 3}) where T<:Number
+
+Propagate the tensor R through the tensors A, M, B.
+"""
+function prop_left3(A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3},
+                    R::Array{T, 3}) where T<:Number
+    @tensor begin
+        R1[a, s1, r2, r3] := A[a, s1, r1]*R[r1, r2, r3]
+        R2[a, b, s2, r3] := R1[a, s1, r2, r3]*M[b, s1, s2, r2]
+        new_R[a, b, c] := R2[a, b, s2, r3]*conj(B[c, s2, r3])
+    end
+    return new_R
+end
+
+"""
+    prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
+               B::Array{T, 3}, R::Array{T, 4}) where T<:Number
+
+Propagate the tensor R through the tensors A, M1, M2, B.
+"""
+function prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
+                    B::Array{T, 3}, R::Array{T, 4}) where T<:Number
+    @tensor begin
+        R1[a, s1, r2, r3, r4] := A[a, s1, r1]*R[r1, r2, r3, r4]
+        R2[a, b, s2, r3, r4] := R1[a, s1, r2, r3, r4]*M1[b, s1, s2, r2]
+        R3[a, b, c, s3, r4] := R2[a, b, s2, r3, r4]*M2[c, s2, s3, r3]
+        new_R[a, b, c, d] := R3[a, b, c, s3, r4]*conj(B[d, s3, r4])
+    end
+    return new_R
 end
