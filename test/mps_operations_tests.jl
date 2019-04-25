@@ -10,6 +10,22 @@
     @test m_occupation(W, 5) ≈ 1/L
 end
 
+@testset "measure fermionic correlations" begin
+    L = 4
+    full = init_mps(Float64, L, "full")
+    @test m_fermionic_correlation(full, 1, 2) ≈ 0.25
+    @test m_fermionic_correlation(full, 1, 3) ≈ 0.
+    @test m_fermionic_correlation(full, 1, 4) ≈ 0.
+end
+
+@testset "measure correlations" begin
+    L = 4
+    full = init_mps(Float64, L, "full")
+    @test m_correlation(full, 1, 2) ≈ 0.25
+    @test m_correlation(full, 1, 3) ≈ 0.25
+    @test m_correlation(full, 1, 4) ≈ 0.25
+end
+
 @testset "contraction of two MPS" begin
     L = 5
     GHZ = init_mps(Float64, L, "GHZ")
