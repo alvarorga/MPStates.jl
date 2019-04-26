@@ -133,3 +133,74 @@ function ent_entropy(psi::Mps{T}, i::Int) where T
     end
     return S
 end
+
+"""
+    enlarge_bond_dimension(psi::Mps{T}, max_D::Int) where T
+
+Take a state and add 0's to the tensors until a maximum bond dimension is
+reached.
+"""
+function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T
+    L = psi.L
+    # Resize A.
+    for i=1:L
+        d1 = size(psi.A[i], 1)
+        d2 = size(psi.A[i], 3)
+        # Check if d1 needs to be resized.
+        need_resize_d1 = log2(d1) < minimum([i-1, L-i+1, log2(max_D)])
+        if log2(d1) < log2(max_D) < minimum([i-1, L-i+1])
+            new_d1 = max_D
+        elseif log2(d1) < minimum([i-1, L-i+1]) < log2(max_D)
+            new_d1 = 1<<minimum([i-1, L-i+1])
+        else
+            new_d1 = d1
+        end
+        # Check if d2 needs to be resized.
+        need_resize_d2 = log2(d2) < minimum([i, L-i, log2(max_D)])
+        if log2(d2) < log2(max_D) < minimum([i, L-i])
+            new_d2 = max_D
+        elseif log2(d1) < minimum([i, L-i]) < log2(max_D)
+            new_d2 = 1<<minimum([i, L-i])
+        else
+            new_d2 = d2
+        end
+
+        # Resize A with the appropriate dimensions, if needed.
+        if need_resize_d1 || need_resize_d2
+            new_A = zeros(T, new_d1, psi.d, new_d2)
+            new_A[1:d1, :, 1:d2] = psi.A[i]
+            psi.A[i] = new_A
+        end
+    end
+
+    # Resize B.
+    for i=1:L
+        d1 = size(psi.B[i], 1)
+        d2 = size(psi.B[i], 3)
+        need_resize_d1 = log2(d1) < minimum([i-1, L-i+1, log2(max_D)])
+        if log2(d1) < log2(max_D) < minimum([i-1, L-i+1])
+            new_d1 = max_D
+        elseif log2(d1) < minimum([i-1, L-i+1]) < log2(max_D)
+            new_d1 = 1<<minimum([i-1, L-i+1])
+        else
+            new_d1 = d1
+        end
+        # Check if d2 needs to be resized.
+        need_resize_d2 = log2(d2) < minimum([i, L-i, log2(max_D)])
+        if log2(d2) < log2(max_D) < minimum([i, L-i])
+            new_d2 = max_D
+        elseif log2(d1) < minimum([i, L-i]) < log2(max_D)
+            new_d2 = 1<<minimum([i, L-i])
+        else
+            new_d2 = d2
+        end
+
+        # Resize B with the appropriate dimensions, if needed.
+        if need_resize_d1 || need_resize_d2
+            new_B = zeros(T, new_d1, psi.d, new_d2)
+            new_B[1:d1, :, 1:d2] = psi.B[i]
+            psi.B[i] = new_B
+        end
+    end
+    return psi
+end

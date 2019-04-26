@@ -1,3 +1,5 @@
+using Test, LinearAlgebra, MPStates
+
 @testset "measure occupation at one site" begin
     L = 5
     GHZ = init_mps(Float64, L, "GHZ")
@@ -58,4 +60,27 @@ end
     W = init_mps(Float64, L, "W")
     @test ent_entropy(W, 1) ≈ 0.5 - sqrt(3)/2*log2(sqrt(3)/2)
     @test ent_entropy(W, 2) ≈ 1/sqrt(2)
+end
+
+@testset "enlargement of bond dimension of MPS" begin
+    L = 10
+    GHZ = init_mps(Float64, L, "GHZ")
+    enlarge_bond_dimension!(GHZ, 5)
+    @test size(GHZ.A[1], 1) == 1
+    @test size(GHZ.A[1], 3) == 2
+    @test size(GHZ.A[3], 1) == 4
+    @test size(GHZ.A[3], 3) == 5
+    for i=4:7
+        @test size(GHZ.A[i], 1) == 5
+        @test size(GHZ.A[i], 3) == 5
+    end
+    @test size(GHZ.A[8], 1) == 5
+    @test size(GHZ.A[8], 3) == 4
+    @test size(GHZ.A[L], 1) == 2
+    @test size(GHZ.A[L], 3) == 1
+    # Check that the properties of the Mps are left intact.
+    full = init_mps(Float64, L, "full")
+    @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
+    enlarge_bond_dimension!(full, 11)
+    @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
 end
