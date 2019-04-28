@@ -47,7 +47,8 @@ function prop_right_svd(SVt::Array{T, 2}, A::Array{T, 3}, max_D::Int=-1) where T
     F = svd(new_A)
     if max_D > 0 && length(F.S) > max_D
         U = F.U[:, 1:max_D]
-        S = Diagonal(F.S[1:max_D])
+        # Normalize state.
+        S = Diagonal(F.S[1:max_D])/norm(F.S[1:max_D])
         Vt = F.Vt[1:max_D, :]
     else
         U = F.U
