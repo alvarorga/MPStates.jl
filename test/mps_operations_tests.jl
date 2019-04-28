@@ -16,8 +16,8 @@ end
     L = 4
     full = init_mps(Float64, L, "full")
     @test m_fermionic_correlation(full, 1, 2) ≈ 0.25
-    @test m_fermionic_correlation(full, 1, 3) ≈ 0.
-    @test m_fermionic_correlation(full, 1, 4) ≈ 0.
+    @test m_fermionic_correlation(full, 1, 3) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(full, 1, 4) ≈ 0. atol=1e-15
 end
 
 @testset "measure correlations" begin
@@ -34,11 +34,11 @@ end
     W = init_mps(Float64, L, "W")
     full = init_mps(Float64, L, "full")
     product = init_mps(Float64, L, "product")
-    @test contract(GHZ, W) ≈ 0.
+    @test contract(GHZ, W) ≈ 0. atol=1e-15
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
     @test contract(GHZ, product) ≈ 1/sqrt(2)
     @test contract(W, full) ≈ sqrt(L/2^L)
-    @test contract(W, product) ≈ 0.
+    @test contract(W, product) ≈ 0. atol=1e-15
     @test contract(full, product) ≈ 1/sqrt(2^L)
 end
 
