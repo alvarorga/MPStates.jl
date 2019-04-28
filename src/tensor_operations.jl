@@ -35,6 +35,56 @@ function prop_lq(A::Array{T, 3}, L::Array{T, 2}, return_Q=true) where T<:Number
 end
 
 """
+    prop_right_svd(SVt::Array{T, 2}, A::Array{T, 3}, max_D::Int=-1) where T<:Number
+
+From two tensors of rank 2 and 3: -SVt-A-, contract and perform SVD
+decomposition, returning the equivalent tensors: -U-SVt2-, with ranks 3 and 2.
+Also truncate bond dimension if maximum is reached.
+"""
+function prop_right_svd(SVt::Array{T, 2}, A::Array{T, 3}, max_D::Int=-1) where T<:Number
+    @tensor new_A[i, s, j] := SVt[i, k]*A[k, s, j]
+    new_A = reshape(new_A, (size(new_A, 1)*size(new_A, 2), size(new_A, 3)))
+    F = svd(new_A)
+    if max_D > 0 && length(F.S) > max_D
+        U = F.U[:, 1:max_D]
+        S = Diagonal(F.S[1:max_D])
+        Vt = F.Vt[1:max_D, :]
+    else
+        U = F.U
+        S = Diagonal(F.S)
+        Vt = F.Vt
+    end
+    SVt2 = S*Vt
+    U = reshape(U, (size(SVt, 1), size(A, 2), size(SVt2, 1)))
+    return U, SVt2
+end
+
+"""
+    prop_left_svd(A::Array{T, 3}, US::Array{T, 2}, max_D::Int=-1) where T<:Number
+
+From two tensors of rank 3 and 2: -A-US-, contract and perform SVD
+decomposition, returning the equivalent tensors: -US2-Vt-, with ranks 2 and 3.
+Also truncate bond dimension if maximum is reached.
+"""
+function prop_left_svd(A::Array{T, 3}, US::Array{T, 2}, max_D::Int=-1) where T<:Number
+    @tensor new_A[i, s, j] := A[i, s, k]*US[k, j]
+    new_A = reshape(new_A, (size(new_A, 1), size(new_A, 2)*size(new_A, 3)))
+    F = svd(new_A)
+    if max_D > 0 && length(F.S) > max_D
+        U = F.U[:, 1:max_D]
+        S = Diagonal(F.S[1:max_D])
+        Vt = F.Vt[1:max_D, :]
+    else
+        U = F.U
+        S = Diagonal(F.S)
+        Vt = F.Vt
+    end
+    US2 = U*S
+    Vt = reshape(Vt, (size(US2, 2), size(A, 2), size(US, 2)))
+    return US2, Vt
+end
+
+"""
     prop_right2(L::Array{T, 2}, A::Array{T, 3}, B::Array{T, 3}) where T<:Number
 
 Propagate the tensor L through the tensors A, B.

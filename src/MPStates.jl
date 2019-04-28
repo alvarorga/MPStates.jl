@@ -2,7 +2,7 @@ module MPStates
 
 export Mps, init_mps
 export m_occupation, m_fermionic_correlation, m_correlation,
-    contract, ent_entropy, enlarge_bond_dimension!
+    contract, ent_entropy, enlarge_bond_dimension!, svd_truncate!
 export Mpo, init_hubbard_mpo
 export expected, m_variance
 

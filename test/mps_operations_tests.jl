@@ -84,3 +84,25 @@ end
     enlarge_bond_dimension!(full, 11)
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
 end
+
+@testset "SVD truncation of MPS" begin
+    L = 10
+    GHZ = init_mps(Float64, L, "GHZ")
+    enlarge_bond_dimension!(GHZ, 5)
+    svd_truncate!(GHZ, 3)
+    @test size(GHZ.A[1], 1) == 1
+    @test size(GHZ.A[1], 3) == 2
+    @test size(GHZ.A[2], 1) == 2
+    @test size(GHZ.A[2], 3) == 3
+    for i=3:8
+        @test size(GHZ.A[i], 1) == 3
+        @test size(GHZ.A[i], 3) == 3
+    end
+    @test size(GHZ.A[9], 1) == 3
+    @test size(GHZ.A[9], 3) == 2
+    @test size(GHZ.A[10], 1) == 2
+    @test size(GHZ.A[10], 3) == 1
+    # Check that the properties of the Mps are left intact.
+    full = init_mps(Float64, L, "full")
+    @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
+end
