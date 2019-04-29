@@ -1,5 +1,3 @@
-using Test, LinearAlgebra, MPStates
-
 @testset "measure occupation at one site" begin
     L = 5
     GHZ = init_mps(Float64, L, "GHZ")
@@ -105,4 +103,27 @@ end
     # Check that the properties of the Mps are left intact.
     full = init_mps(Float64, L, "full")
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
+end
+
+@testset "save and read Mps in hdf5 format" for T in [Float32, Float64, ComplexF32, ComplexF64]
+    L = 10
+    GHZ = init_mps(T, L, "GHZ")
+    # Save Mps.
+    filename = "foo.h5"
+    # Remove file if previous test crashed and file was not removed.
+    if isfile(filename)
+        rm(filename)
+    end
+    @test save_mps(filename, GHZ, true) == 0
+    # Read Mps.
+    psi = read_mps(filename)
+    @test psi.L == L
+    @test psi.d == 2
+    @test eltype(psi.A[1]) == T
+    for i=1:L
+        @test psi.A[i] ≈ GHZ.A[i]
+        @test psi.B[i] ≈ GHZ.B[i]
+    end
+    # Remove hdf5 testing file.
+    rm(filename)
 end

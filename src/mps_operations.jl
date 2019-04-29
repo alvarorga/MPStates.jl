@@ -233,3 +233,85 @@ function svd_truncate!(psi::Mps{T}, max_D::Int) where T
 
     return psi
 end
+
+"""
+    save_mps(filename::String, psi::Mps{T}[, save_B::Bool=true]) where T
+
+Save the state `psi` in file `filename` inHDF5 format:
+- `L`: length of Mps.
+- `d`: physical dimension.
+- `T`: type of Mps tensor elements.
+- `save_B`: `1` if right canonical tensors `B` are stored in file.
+- `Ai`: left canonical tensors.
+- `Bi`: right canonical tensors. Only stored if `save_B == true`.
+
+More info about the HDF5 format can be found here:
+    https://github.com/JuliaIO/HDF5.jl/blob/master/doc/hdf5.md
+"""
+function save_mps(filename::String, psi::Mps{T}, save_B::Bool=true) where T
+    h5write(filename, "L", psi.L)
+    h5write(filename, "d", psi.d)
+    h5write(filename, "T", "$T")
+    h5write(filename, "save_B", save_B == true ? 1 : 0)
+    is_complex = !(T <: Real)
+    for i=1:psi.L
+        if !is_complex
+            h5write(filename, "A$i", psi.A[i])
+        else
+            h5write(filename, "realA$i", real(psi.A[i]))
+            h5write(filename, "imagA$i", imag(psi.A[i]))
+        end
+    end
+    if save_B
+        for i=1:psi.L
+            if !is_complex
+                h5write(filename, "B$i", psi.B[i])
+            else
+                h5write(filename, "realB$i", real(psi.B[i]))
+                h5write(filename, "imagB$i", imag(psi.B[i]))
+            end
+        end
+    end
+    return 0
+end
+
+"""
+    read_mps(filename::String)
+
+Read the state `psi` in stored in file `filename` inHDF5 format.
+"""
+function read_mps(filename::String)
+    L = h5read(filename, "L")
+    d = h5read(filename, "d")
+    str_T = h5read(filename, "T")
+    if str_T == "Float32"
+        T = Float32
+    elseif str_T == "Float64"
+        T = Float64
+    elseif str_T == "Complex{Float32}"
+        T = ComplexF32
+    elseif str_T == "Complex{Float64}"
+        T = ComplexF64
+    end
+    is_complex = !(T <: Real)
+
+    # Start Mps as full and then replace tensors.
+    psi = init_mps(T, L, "full")
+    for i=1:psi.L
+        if !is_complex
+            psi.A[i] = h5read(filename, "A$i")
+        else
+            psi.A[i] = h5read(filename, "realA$i") + 1im*h5read(filename, "imagA$i")
+        end
+    end
+    if h5read(filename, "save_B") == 1
+        for i=1:psi.L
+            if !is_complex
+                psi.B[i] = h5read(filename, "B$i")
+            else
+                psi.B[i] = h5read(filename, "realB$i") + 1im*h5read(filename, "imagB$i")
+            end
+        end
+    end
+    return psi
+end
