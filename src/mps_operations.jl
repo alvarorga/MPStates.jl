@@ -312,6 +312,8 @@ function read_mps(filename::String)
                 psi.B[i] = h5read(filename, "realB$i") + 1im*h5read(filename, "imagB$i")
             end
         end
+    else
+        psi.B = make_right_canonical(psi.A)
     end
     return psi
 end
