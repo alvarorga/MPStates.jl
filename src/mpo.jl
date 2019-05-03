@@ -92,56 +92,52 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
     end
 
     # Correlations J_ij*c^dagger_i*c_j.
-    # for i=1:L, j=1:i-1 # i > j.
-    #     abs(J[i, j]) < 1e-8 && continue
-    #     # Operator c_j.
-    #     M[j][1, 1, 2, 2+i] = J[i, j]
-    #     # Operator Id for bosons or 1-2n for fermions.
-    #     for k=j+1:i-1
-    #         if is_fermionic
-    #             M[k][2+i, :, :, 2+i] = Z
-    #         else
-    #             M[k][2+i, :, :, 2+i] = Id
-    #         end
-    #     end
-    #     # Operator c^dagger_i.
-    #     M[i][2+i, 2, 1, 2] = one(T)
-    # end
-    # for i=1:L, j=i+1:L # i < j.
-    #     abs(J[i, j]) < 1e-8 && continue
-    #     # Operator c^dagger_i.
-    #     M[i][1, 2, 1, 2+i] = one(T)
-    #     # Operator Id for bosons or 1-2n for fermions.
-    #     for k=i+1:j-1
-    #         if is_fermionic
-    #             M[k][2+i, :, :, 2+i] = Z
-    #         else
-    #             M[k][2+i, :, :, 2+i] = Id
-    #         end
-    #     end
-    #     # Operator c_j.
-    #     M[j][2+i, 1, 2, 2] = J[i, j]
-    # end
-    #
+    for i=1:L, j=1:i-1 # i > j.
+        abs(J[i, j]) < 1e-8 && continue
+        # Operator c_j.
+        M[j][1, 1, 2, 2+i] = J[i, j]
+        # Operator Id for bosons or 1-2n for fermions.
+        for k=j+1:i-1
+            if is_fermionic
+                M[k][2+i, :, :, 2+i] = Z
+            else
+                M[k][2+i, :, :, 2+i] = Id
+            end
+        end
+        # Operator c^dagger_i.
+        M[i][2+i, 2, 1, 2] = one(T)
+    end
+    for i=1:L, j=i+1:L # i < j.
+        abs(J[i, j]) < 1e-8 && continue
+        # Operator c^dagger_i.
+        M[i][1, 2, 1, 2+i] = one(T)
+        # Operator Id for bosons or 1-2n for fermions.
+        for k=i+1:j-1
+            if is_fermionic
+                M[k][2+i, :, :, 2+i] = Z
+            else
+                M[k][2+i, :, :, 2+i] = Id
+            end
+        end
+        # Operator c_j.
+        M[j][2+i, 1, 2, 2] = J[i, j]
+    end
+
     # Interactions V_ij*n_i*n_j.
     for j=2:L, i=1:j-1 # i < j.
         abs(V[i, j] + V[j, i]) < 1e-8 && continue
         # Operator n_i.
-        M[i][1, 2, 2, 2+L+i] = V[i, j] + V[j, i]
+        M[i][1, 2, 2, 2+L+i] = one(T)
         # Operator Id.
         for k=i+1:j-1
             M[k][2+L+i, :, :, 2+L+i] = Id
         end
         # Operator n_j.
-        M[j][2+L+i, 2, 2, 2] = one(T)
+        M[j][2+L+i, 2, 2, 2] = V[i, j] + V[j, i]
     end
 
     M[1] = M[1][1:1, :, :, :]
     M[end] = M[end][:, :, :, 2:2]
-
-    for i=1:L
-        display(M[i])
-    end
 
     return Mpo(M, L, 2)
 end
