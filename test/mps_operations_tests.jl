@@ -28,6 +28,20 @@ end
     @test m_correlation(full, 1, 4) ≈ 0.25
 end
 
+@testset "measure 2 point occupations" begin
+    L = 5
+    GHZ = init_mps(Float64, L, "GHZ")
+    @test m_2occupations(GHZ, 1, 3) ≈ 0.5
+    @test m_2occupations(GHZ, 3, 2) ≈ 0.5
+    @test m_2occupations(GHZ, 4, 2) ≈ 0.5
+    @test m_2occupations(GHZ, 1, 5) ≈ 0.5
+    full = init_mps(Float64, L, "full")
+    @test m_2occupations(full, 1, 3) ≈ 0.25
+    @test m_2occupations(full, 3, 2) ≈ 0.25
+    @test m_2occupations(full, 4, 3) ≈ 0.25
+    @test m_2occupations(full, 1, 5) ≈ 0.25
+end
+
 @testset "contraction of two MPS" begin
     L = 5
     GHZ = init_mps(Float64, L, "GHZ")

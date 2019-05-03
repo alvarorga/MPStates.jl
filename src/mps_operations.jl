@@ -90,6 +90,33 @@ function m_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
 end
 
 """
+    m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
+
+Measure the two point occupation <n_i n_j>.
+"""
+function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
+    psi.d == 2 || throw("Physical dimension of Mps is not 2.")
+    i != j || throw("Site i must be different than j.")
+
+    # Operators n, and Id.
+    n = zeros(T, 1, 2, 2, 1)
+    n[1, 2, 2, 1] = one(T)
+    Id = zeros(T, 1, 2, 2, 1)
+    Id[1, :, :, 1] = Matrix{T}(I, 2, 2)
+
+    # Make tensor contraction.
+    L = ones(T, 1, 1, 1)
+    for k=1:psi.L
+        if k == i || k == j
+            L = prop_right3(L, psi.A[k], n, psi.A[k])
+        else
+            L = prop_right3(L, psi.A[k], Id, psi.A[k])
+        end
+    end
+    return L[1, 1, 1]
+end
+
+"""
     contract(psi::Mps, phi::Mps) where T
 
 Contraction of two MPS: <psi|phi>.
