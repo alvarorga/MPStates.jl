@@ -91,49 +91,76 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
         M[i][1, 2, 2, 2] = J[i, i]
     end
 
+    # Keep trace of final occupied indices in Mpo.
+    occ_ix = zeros(Int, 2+2L)
+    occ_ix[1] = L
+    occ_ix[2] = L
+
     # Correlations J_ij*c^dagger_i*c_j.
-    for i=1:L, j=1:i-1 # i > j.
-        abs(J[i, j]) < 1e-8 && continue
-        # Operator c_j.
-        M[j][1, 1, 2, 2+i] = J[i, j]
-        # Operator Id for bosons or 1-2n for fermions.
-        for k=j+1:i-1
-            if is_fermionic
-                M[k][2+i, :, :, 2+i] = Z
-            else
-                M[k][2+i, :, :, 2+i] = Id
+    for i=1:L
+        norm(J[i, :]) < 1e-8 && continue
+        ix_initial = min(i, findfirst(abs.(J[i, :]) .> 1e-8))
+        ix_final = max(i, findlast(abs.(J[i, :]) .> 1e-8))
+        ix = findfirst(ix_initial .>= occ_ix)
+        occ_ix[ix] = ix_final
+
+        for j=1:i-1 # i > j.
+            abs(J[i, j]) <= 1e-8 && continue
+            # Operator c_j.
+            M[j][1, 1, 2, ix] = J[i, j]
+            # Operator Id for bosons or 1-2n for fermions.
+            for k=j+1:i-1
+                if is_fermionic
+                    M[k][ix, :, :, ix] = Z
+                else
+                    M[k][ix, :, :, ix] = Id
+                end
             end
+            # Operator c^dagger_i.
+            M[i][ix, 2, 1, 2] = one(T)
         end
-        # Operator c^dagger_i.
-        M[i][2+i, 2, 1, 2] = one(T)
-    end
-    for i=1:L, j=i+1:L # i < j.
-        abs(J[i, j]) < 1e-8 && continue
-        # Operator c^dagger_i.
-        M[i][1, 2, 1, 2+i] = one(T)
-        # Operator Id for bosons or 1-2n for fermions.
-        for k=i+1:j-1
-            if is_fermionic
-                M[k][2+i, :, :, 2+i] = Z
-            else
-                M[k][2+i, :, :, 2+i] = Id
+        for j=i+1:L # i < j.
+            abs(J[i, j]) < 1e-8 && continue
+            # Operator c^dagger_i.
+            M[i][1, 2, 1, ix] = one(T)
+            # Operator Id for bosons or 1-2n for fermions.
+            for k=i+1:j-1
+                if is_fermionic
+                    M[k][ix, :, :, ix] = Z
+                else
+                    M[k][ix, :, :, ix] = Id
+                end
             end
+            # Operator c_j.
+            M[j][ix, 1, 2, 2] = J[i, j]
         end
-        # Operator c_j.
-        M[j][2+i, 1, 2, 2] = J[i, j]
     end
 
     # Interactions V_ij*n_i*n_j.
-    for j=2:L, i=1:j-1 # i < j.
-        abs(V[i, j] + V[j, i]) < 1e-8 && continue
-        # Operator n_i.
-        M[i][1, 2, 2, 2+L+i] = one(T)
-        # Operator Id.
-        for k=i+1:j-1
-            M[k][2+L+i, :, :, 2+L+i] = Id
+    for i=2:L
+        norm(V[i, :] .+ V[:, i]) < 1e-8 && continue
+        ix_initial = min(i, findfirst(abs.(V[i, :] .+ V[:, i]) .> 1e-8))
+        ix_final = max(i, findlast(abs.(V[i, :] .+ V[:, i]) .> 1e-8))
+        ix = findfirst(ix_initial .>= occ_ix)
+        occ_ix[ix] = ix_final
+
+        for j=1:i-1 # j < i.
+            abs(V[i, j] + V[j, i]) < 1e-8 && continue
+            # Operator n_j.
+            M[j][1, 2, 2, ix] = V[i, j] + V[j, i]
+            # Operator Id.
+            for k=j+1:i-1
+                M[k][ix, :, :, ix] = Id
+            end
+            # Operator n_i.
+            M[i][ix, 2, 2, 2] = one(T)
         end
-        # Operator n_j.
-        M[j][2+L+i, 2, 2, 2] = V[i, j] + V[j, i]
+    end
+
+    # Trim the unfilled region of the M tensors.
+    ix_trim = findlast(occ_ix .> 0)
+    for i=1:L
+        M[i] = M[i][1:ix_trim, :, :, 1:ix_trim]
     end
 
     M[1] = M[1][1:1, :, :, :]
