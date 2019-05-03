@@ -16,16 +16,24 @@ end
     L = 4
     full = init_mps(Float64, L, "full")
     @test m_fermionic_correlation(full, 1, 2) ≈ 0.25
-    @test m_fermionic_correlation(full, 1, 3) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(full, 3, 4) ≈ 0.25
+    @test m_fermionic_correlation(full, 3, 2) ≈ 0.25
+    @test m_fermionic_correlation(full, 4, 3) ≈ 0.25
     @test m_fermionic_correlation(full, 1, 4) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(full, 4, 2) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(full, 1, 3) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(full, 2, 4) ≈ 0. atol=1e-15
 end
 
 @testset "measure correlations" begin
     L = 4
     full = init_mps(Float64, L, "full")
     @test m_correlation(full, 1, 2) ≈ 0.25
-    @test m_correlation(full, 1, 3) ≈ 0.25
+    @test m_correlation(full, 2, 3) ≈ 0.25
+    @test m_correlation(full, 2, 4) ≈ 0.25
     @test m_correlation(full, 1, 4) ≈ 0.25
+    @test m_correlation(full, 3, 2) ≈ 0.25
+    @test m_correlation(full, 4, 2) ≈ 0.25
 end
 
 @testset "measure 2 point occupations" begin

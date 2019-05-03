@@ -22,36 +22,10 @@ end
 """
     m_fermionic_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
 
-Measure correlation <c^dagger_i c_j>, with `psi` a fermionic state.
+Measure the correlation <c^dagger_i c_j>, with `psi` a fermionic state.
 """
 function m_fermionic_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
-    psi.d == 2 || throw("Physical dimension of Mps is not 2.")
-    i != j || throw("Site i must be different than j.")
-
-    # Operators c^dagger, c, and (1-2n).
-    cdag = zeros(T, 1, 2, 2, 1)
-    cdag[1, 2, 1, 1] = one(T)
-    c = zeros(T, 1, 2, 2, 1)
-    c[1, 1, 2, 1] = one(T)
-    Z = zeros(T, 1, 2, 2, 1)
-    Z[1, 1, 1, 1] = one(T)
-    Z[1, 2, 2, 1] = -one(T)
-
-    L = ones(T, 1, 1, 1)
-    if i < j
-        L = prop_right3(L, psi.A[i], cdag, psi.A[i])
-        for k=i+1:j-1
-            L = prop_right3(L, psi.A[k], Z, psi.A[k])
-        end
-        L = prop_right3(L, psi.A[j], c, psi.A[j])
-    else
-        L = prop_right3(L, psi.A[j], c, psi.A[j])
-        for k=i+1:j-1
-            L = prop_right3(L, psi.A[k], Z, psi.A[k])
-        end
-        L = prop_right3(L, psi.A[i], cdad, psi.A[i])
-    end
-    return L[1, 1, 1]
+    return m_generic_correlation(psi, i, j, true)
 end
 
 """
@@ -60,31 +34,41 @@ end
 Measure correlation <c^dagger_i c_j>, with `psi` a non fermionic state.
 """
 function m_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
+    return m_generic_correlation(psi, i, j, false)
+end
+
+"""
+    m_generic_correlation(psi::Mps{T}, i::Int, j::Int, is_fermionic::Bool) where T<:Number
+
+Measure the correlation <c^dagger_i c_j>, with `psi` a fermion or boson state.
+"""
+function m_generic_correlation(psi::Mps{T}, i::Int, j::Int, is_fermionic::Bool) where T<:Number
     psi.d == 2 || throw("Physical dimension of Mps is not 2.")
     i != j || throw("Site i must be different than j.")
 
-    # Operators c^dagger, c, and (1-2n).
-    cdag = zeros(T, 1, 2, 2, 1)
-    cdag[1, 2, 1, 1] = one(T)
-    c = zeros(T, 1, 2, 2, 1)
-    c[1, 1, 2, 1] = one(T)
+    # Operators c^dagger_i, c_j, Id, and (1-2n).
+    cdi = zeros(T, 1, 2, 2, 1)
+    cdi[1, 2, 1, 1] = one(T)
+    cj = zeros(T, 1, 2, 2, 1)
+    cj[1, 1, 2, 1] = one(T)
+    Z = zeros(T, 1, 2, 2, 1)
+    Z[1, 1, 1, 1] = one(T)
+    Z[1, 2, 2, 1] = -one(T)
     Id = zeros(T, 1, 2, 2, 1)
     Id[1, 1, 1, 1] = one(T)
     Id[1, 2, 2, 1] = one(T)
 
     L = ones(T, 1, 1, 1)
-    if i < j
-        L = prop_right3(L, psi.A[i], cdag, psi.A[i])
-        for k=i+1:j-1
+    for k=1:psi.L
+        if k == i
+            L = prop_right3(L, psi.A[k], cdi, psi.A[k])
+        elseif k == j
+            L = prop_right3(L, psi.A[k], cj, psi.A[k])
+        elseif is_fermionic && (i < k < j || j < k < i)
+            L = prop_right3(L, psi.A[k], Z, psi.A[k])
+        else
             L = prop_right3(L, psi.A[k], Id, psi.A[k])
         end
-        L = prop_right3(L, psi.A[j], c, psi.A[j])
-    else
-        L = prop_right3(L, psi.A[j], c, psi.A[j])
-        for k=i+1:j-1
-            L = prop_right3(L, psi.A[k], Id, psi.A[k])
-        end
-        L = prop_right3(L, psi.A[i], cdad, psi.A[i])
     end
     return L[1, 1, 1]
 end
