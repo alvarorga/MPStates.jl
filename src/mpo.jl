@@ -39,14 +39,14 @@ function init_hubbard_mpo(L::Int, t::T, U::T) where T<:Number
     Mi[1, :, :, 1] = Id
     Mi[2, :, :, 2] = Id
     # Creation operators.
-    Mi[1, 2, 1, 3] = convert(T, t)
-    Mi[4, 2, 1, 2] = one(T)
+    Mi[1, 1, 2, 3] = convert(T, t)
+    Mi[4, 1, 2, 2] = 1.
     # Annihilation operators.
-    Mi[3, 1, 2, 2] = one(T)
-    Mi[1, 1, 2, 4] = convert(T, t)
+    Mi[3, 2, 1, 2] = 1.
+    Mi[1, 2, 1, 4] = convert(T, t)
     # Number operators.
     Mi[1, 2, 2, 5] = convert(T, U)
-    Mi[5, 2, 2, 2] = one(T)
+    Mi[5, 2, 2, 2] = 1.
     # Initial and final tensors.
     M0 = reshape(Mi[1, :, :, :], (1, size(Mi, 2), size(Mi, 3), size(Mi, 4)))
     Mend = reshape(Mi[:, :, :, 2], (size(Mi, 1), size(Mi, 2), size(Mi, 3), 1))
@@ -107,7 +107,7 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
         for j=1:i-1 # i > j.
             abs(J[i, j]) <= 1e-8 && continue
             # Operator c_j.
-            M[j][1, 1, 2, ix] = J[i, j]
+            M[j][1, 2, 1, ix] = J[i, j]
             # Operator Id for bosons or 1-2n for fermions.
             for k=j+1:i-1
                 if is_fermionic
@@ -117,12 +117,12 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
                 end
             end
             # Operator c^dagger_i.
-            M[i][ix, 2, 1, 2] = one(T)
+            M[i][ix, 1, 2, 2] = one(T)
         end
         for j=i+1:L # i < j.
             abs(J[i, j]) < 1e-8 && continue
             # Operator c^dagger_i.
-            M[i][1, 2, 1, ix] = one(T)
+            M[i][1, 1, 2, ix] = one(T)
             # Operator Id for bosons or 1-2n for fermions.
             for k=i+1:j-1
                 if is_fermionic
@@ -132,7 +132,7 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
                 end
             end
             # Operator c_j.
-            M[j][ix, 1, 2, 2] = J[i, j]
+            M[j][ix, 2, 1, 2] = J[i, j]
         end
     end
 

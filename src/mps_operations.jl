@@ -48,15 +48,14 @@ function m_generic_correlation(psi::Mps{T}, i::Int, j::Int, is_fermionic::Bool) 
 
     # Operators c^dagger_i, c_j, Id, and (1-2n).
     cdi = zeros(T, 1, 2, 2, 1)
-    cdi[1, 2, 1, 1] = one(T)
+    cdi[1, 1, 2, 1] = 1.
     cj = zeros(T, 1, 2, 2, 1)
-    cj[1, 1, 2, 1] = one(T)
+    cj[1, 2, 1, 1] = 1.
     Z = zeros(T, 1, 2, 2, 1)
-    Z[1, 1, 1, 1] = one(T)
-    Z[1, 2, 2, 1] = -one(T)
+    Z[1, 1, 1, 1] = 1.
+    Z[1, 2, 2, 1] = -1.
     Id = zeros(T, 1, 2, 2, 1)
-    Id[1, 1, 1, 1] = one(T)
-    Id[1, 2, 2, 1] = one(T)
+    Id[1, :, :, 1] = Matrix{T}(I, 2, 2)
 
     L = ones(T, 1, 1, 1)
     for k=1:psi.L
@@ -84,7 +83,7 @@ function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
 
     # Operators n, and Id.
     n = zeros(T, 1, 2, 2, 1)
-    n[1, 2, 2, 1] = one(T)
+    n[1, 2, 2, 1] = 1.
     Id = zeros(T, 1, 2, 2, 1)
     Id[1, :, :, 1] = Matrix{T}(I, 2, 2)
 
