@@ -16,7 +16,7 @@ function m_occupation(psi::Mps{T}, i::Int, s::Int=2) where T<:Number
     for j=i+1:psi.L
         L = prop_right2(L, psi.A[j], psi.A[j])
     end
-    return L[1, 1]
+    return real(L[1, 1])
 end
 
 """
@@ -97,7 +97,7 @@ function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
             L = prop_right3(L, psi.A[k], Id, psi.A[k])
         end
     end
-    return L[1, 1, 1]
+    return real(L[1, 1, 1])
 end
 
 """
