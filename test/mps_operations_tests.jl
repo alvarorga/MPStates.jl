@@ -1,57 +1,113 @@
 using MPStates, Test
 
 @testset "measure occupation at one site" begin
-    L = 5
-    GHZ = init_mps(Float64, L, "GHZ")
-    @test m_occupation(GHZ, 1) ≈ 0.5
-    @test m_occupation(GHZ, 2) ≈ 0.5
-    @test m_occupation(GHZ, 5) ≈ 0.5
-    W = init_mps(Float64, L, "W")
-    @test m_occupation(W, 1) ≈ 1/L
-    @test m_occupation(W, 3) ≈ 1/L
-    @test m_occupation(W, 5) ≈ 1/L
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test m_occupation(rtest1, 1) ≈ 1/9
+    @test m_occupation(rtest1, 2) ≈ 4/9
+    @test m_occupation(rtest1, 3) ≈ 4/9
+    @test m_occupation(rtest1, 4) ≈ 1.
+    @test m_occupation(rtest1, 5) ≈ 0.64
+    @test m_occupation(rtest1, 6) ≈ 1.
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test m_occupation(ctest1, 1) ≈ 1/9
+    @test m_occupation(ctest1, 2) ≈ 4/9
+    @test m_occupation(ctest1, 3) ≈ 4/9
+    @test m_occupation(ctest1, 4) ≈ 1.
+    @test m_occupation(ctest1, 5) ≈ 0.64
+    @test m_occupation(ctest1, 6) ≈ 1.
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test m_occupation(rtest2, 1) ≈ 5/9
+    @test m_occupation(rtest2, 2) ≈ 5/9
+    @test m_occupation(rtest2, 3) ≈ 1.
+    @test m_occupation(rtest2, 4) ≈ 1.
+    @test m_occupation(rtest2, 5) ≈ 1.
+    @test m_occupation(rtest2, 6) ≈ 0.64
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test m_occupation(ctest2, 1) ≈ 5/9
+    @test m_occupation(ctest2, 2) ≈ 5/9
+    @test m_occupation(ctest2, 3) ≈ 1.
+    @test m_occupation(ctest2, 4) ≈ 1.
+    @test m_occupation(ctest2, 5) ≈ 1.
+    @test m_occupation(ctest2, 6) ≈ 0.64
 end
 
 @testset "measure fermionic correlations" begin
-    L = 4
-    full = init_mps(Float64, L, "full")
-    @test m_fermionic_correlation(full, 1, 2) ≈ 0.25
-    @test m_fermionic_correlation(full, 3, 4) ≈ 0.25
-    @test m_fermionic_correlation(full, 3, 2) ≈ 0.25
-    @test m_fermionic_correlation(full, 4, 3) ≈ 0.25
-    @test m_fermionic_correlation(full, 1, 4) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(full, 4, 2) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(full, 1, 3) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(full, 2, 4) ≈ 0. atol=1e-15
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test m_fermionic_correlation(rtest1, 1, 2) ≈ -2/9
+    @test m_fermionic_correlation(rtest1, 1, 4) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(rtest1, 3, 2) ≈ -4/9
+    @test m_fermionic_correlation(rtest1, 2, 6) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(rtest1, 6, 1) ≈ 0.  atol=1e-15
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test m_fermionic_correlation(ctest1, 1, 2) ≈ complex(0., 2/9)
+    @test m_fermionic_correlation(ctest1, 1, 4) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(ctest1, 3, 2) ≈ complex(0., 4/9)
+    @test m_fermionic_correlation(ctest1, 2, 6) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(ctest1, 6, 1) ≈ 0.  atol=1e-15
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test m_fermionic_correlation(rtest2, 1, 2) ≈ -4/9
+    @test m_fermionic_correlation(rtest2, 1, 4) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(rtest2, 2, 6) ≈ 2/9*0.6*0.8
+    @test m_fermionic_correlation(rtest2, 6, 1) ≈ 2/9*0.6*0.8
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test m_fermionic_correlation(ctest2, 1, 2) ≈ complex(0., -4/9)
+    @test m_fermionic_correlation(ctest2, 1, 4) ≈ 0. atol=1e-15
+    @test m_fermionic_correlation(ctest2, 2, 6) ≈ 2/9*0.6*0.8
+    @test m_fermionic_correlation(ctest2, 6, 1) ≈ complex(0., -2/9*0.6*0.8)
 end
 
 @testset "measure correlations" begin
-    L = 4
-    full = init_mps(Float64, L, "full")
-    @test m_correlation(full, 1, 2) ≈ 0.25
-    @test m_correlation(full, 2, 3) ≈ 0.25
-    @test m_correlation(full, 2, 4) ≈ 0.25
-    @test m_correlation(full, 1, 4) ≈ 0.25
-    @test m_correlation(full, 3, 2) ≈ 0.25
-    @test m_correlation(full, 4, 2) ≈ 0.25
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test m_correlation(rtest1, 1, 2) ≈ -2/9
+    @test m_correlation(rtest1, 1, 4) ≈ 0. atol=1e-15
+    @test m_correlation(rtest1, 3, 2) ≈ -4/9
+    @test m_correlation(rtest1, 2, 6) ≈ 0. atol=1e-15
+    @test m_correlation(rtest1, 6, 1) ≈ 0.  atol=1e-15
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test m_correlation(ctest1, 1, 2) ≈ complex(0., 2/9)
+    @test m_correlation(ctest1, 1, 4) ≈ 0. atol=1e-15
+    @test m_correlation(ctest1, 3, 2) ≈ complex(0., 4/9)
+    @test m_correlation(ctest1, 2, 6) ≈ 0. atol=1e-15
+    @test m_correlation(ctest1, 6, 1) ≈ 0.  atol=1e-15
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test m_correlation(rtest2, 1, 2) ≈ -4/9
+    @test m_correlation(rtest2, 1, 4) ≈ 0. atol=1e-15
+    @test m_correlation(rtest2, 2, 6) ≈ -2/9*0.6*0.8
+    @test m_correlation(rtest2, 6, 1) ≈ 2/9*0.6*0.8
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test m_correlation(ctest2, 1, 2) ≈ complex(0., -4/9)
+    @test m_correlation(ctest2, 1, 4) ≈ 0. atol=1e-15
+    @test m_correlation(ctest2, 2, 6) ≈ -2/9*0.6*0.8
+    @test m_correlation(ctest2, 6, 1) ≈ complex(0., -2/9*0.6*0.8)
 end
 
 @testset "measure 2 point occupations" begin
-    L = 5
-    GHZ = init_mps(Float64, L, "GHZ")
-    @test m_2occupations(GHZ, 1, 3) ≈ 0.5
-    @test m_2occupations(GHZ, 3, 2) ≈ 0.5
-    @test m_2occupations(GHZ, 4, 2) ≈ 0.5
-    @test m_2occupations(GHZ, 1, 5) ≈ 0.5
-    full = init_mps(Float64, L, "full")
-    @test m_2occupations(full, 1, 3) ≈ 0.25
-    @test m_2occupations(full, 3, 2) ≈ 0.25
-    @test m_2occupations(full, 4, 3) ≈ 0.25
-    @test m_2occupations(full, 1, 5) ≈ 0.25
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test m_2occupations(rtest1, 1, 2) ≈ 0. atol=1e-15
+    @test m_2occupations(rtest1, 1, 4) ≈ 1/9
+    @test m_2occupations(rtest1, 3, 2) ≈ 0. atol=1e-15
+    @test m_2occupations(rtest1, 2, 5) ≈ 4/9*0.64
+    @test m_2occupations(rtest1, 6, 1) ≈ 1/9
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test m_2occupations(ctest1, 1, 2) ≈ 0. atol=1e-15
+    @test m_2occupations(ctest1, 1, 4) ≈ 1/9
+    @test m_2occupations(ctest1, 3, 2) ≈ 0. atol=1e-15
+    @test m_2occupations(ctest1, 2, 5) ≈ 4/9*0.64
+    @test m_2occupations(ctest1, 6, 1) ≈ 1/9
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test m_2occupations(rtest2, 1, 2) ≈ 1/9
+    @test m_2occupations(rtest2, 1, 4) ≈ 5/9
+    @test m_2occupations(rtest2, 2, 6) ≈ 5/9*0.64
+    @test m_2occupations(rtest2, 6, 1) ≈ 5/9*0.64
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test m_2occupations(ctest2, 1, 2) ≈ 1/9
+    @test m_2occupations(ctest2, 1, 4) ≈ 5/9
+    @test m_2occupations(ctest2, 2, 6) ≈ 5/9*0.64
+    @test m_2occupations(ctest2, 6, 1) ≈ 5/9*0.64
 end
 
 @testset "contraction of two MPS" begin
-    L = 5
+    L = 6
     GHZ = init_mps(Float64, L, "GHZ")
     W = init_mps(Float64, L, "W")
     full = init_mps(Float64, L, "full")
@@ -62,6 +118,25 @@ end
     @test contract(W, full) ≈ sqrt(L/2^L)
     @test contract(W, product) ≈ 0. atol=1e-15
     @test contract(full, product) ≈ 1/sqrt(2^L)
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test contract(rtest1, W) ≈ 0. atol=1e-15
+    @test contract(rtest1, GHZ) ≈ 0. atol=1e-15
+    @test contract(rtest1, full) ≈ (1/3 - 2/3 + 2/3)*(-0.6 + 0.8)/sqrt(2^L)
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test contract(ctest1, W) ≈ 0. atol=1e-15
+    @test contract(ctest1, GHZ) ≈ 0. atol=1e-15
+    @test contract(ctest1, full) ≈ (-1im/3 - 2im/3 - 2/3)*(0.6im + 0.8)/sqrt(2^L)
+    @test contract(full, ctest1) ≈ (1im/3 + 2im/3 - 2/3)*(-0.6im + 0.8)/sqrt(2^L)
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test contract(rtest2, W) ≈ 0. atol=1e-15
+    @test contract(rtest2, GHZ) ≈ 0.8*1/3/sqrt(2)
+    @test contract(rtest2, full) ≈ (1/3 - 2/3 + 2/3)*(0.6 + 0.8)/sqrt(2^L)
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test contract(ctest2, W) ≈ 0. atol=1e-15
+    @test contract(ctest2, GHZ) ≈ -0.8*1/3/sqrt(2)
+    @test contract(GHZ, ctest2) ≈ -0.8*1/3/sqrt(2)
+    @test contract(ctest2, full) ≈ (-1im/3 - 2/3 - 2im/3)*(0.6 - 0.8im)/sqrt(2^L)
+    @test contract(full, ctest2) ≈ (1im/3 - 2/3 + 2im/3)*(0.6 + 0.8im)/sqrt(2^L)
 end
 
 @testset "schmidt decomposition" begin
@@ -72,6 +147,34 @@ end
     W = init_mps(Float64, L, "W")
     @test MPStates.schmidt_decomp(W, 1) ≈ [sqrt(3)/2, 0.5]
     @test MPStates.schmidt_decomp(W, 2) ≈ [1/sqrt(2), 1/sqrt(2)]
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test MPStates.schmidt_decomp(rtest1, 1) ≈ [2sqrt(2)/3, 1/3]
+    @test MPStates.schmidt_decomp(rtest1, 2) ≈ [sqrt(5)/3, 2/3]
+    @test MPStates.schmidt_decomp(rtest1, 3) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest1, 4) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest1, 5) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest1, 6) ≈ [1.]
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test MPStates.schmidt_decomp(ctest1, 1) ≈ [2sqrt(2)/3, 1/3]
+    @test MPStates.schmidt_decomp(ctest1, 2) ≈ [sqrt(5)/3, 2/3]
+    @test MPStates.schmidt_decomp(ctest1, 3) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest1, 4) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest1, 5) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest1, 6) ≈ [1.]
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test MPStates.schmidt_decomp(rtest2, 1) ≈ [sqrt((1+sqrt(17)/9)/2), sqrt((1-sqrt(17)/9)/2)]
+    @test MPStates.schmidt_decomp(rtest2, 2) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest2, 3) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest2, 4) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest2, 5) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(rtest2, 6) ≈ [1.]
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test MPStates.schmidt_decomp(ctest2, 1) ≈ [sqrt((1+sqrt(17)/9)/2), sqrt((1-sqrt(17)/9)/2)]
+    @test MPStates.schmidt_decomp(ctest2, 2) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest2, 3) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest2, 4) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest2, 5) ≈ [1., 0.]
+    @test MPStates.schmidt_decomp(ctest2, 6) ≈ [1.]
 end
 
 @testset "entanglement entropy" begin
@@ -82,6 +185,26 @@ end
     W = init_mps(Float64, L, "W")
     @test ent_entropy(W, 1) ≈ 0.5 - sqrt(3)/2*log2(sqrt(3)/2)
     @test ent_entropy(W, 2) ≈ 1/sqrt(2)
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test ent_entropy(rtest1, 1) ≈ -2sqrt(2)/3*log2(2sqrt(2)/3) - 1/3*log2(1/3)
+    @test ent_entropy(rtest1, 2) ≈ -sqrt(5)/3*log2(sqrt(5)/3) - 2/3*log2(2/3)
+    @test ent_entropy(rtest1, 3) ≈ 0.
+    @test ent_entropy(rtest1, 4) ≈ 0.
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test ent_entropy(ctest1, 1) ≈ -2sqrt(2)/3*log2(2sqrt(2)/3) - 1/3*log2(1/3)
+    @test ent_entropy(ctest1, 2) ≈ -sqrt(5)/3*log2(sqrt(5)/3) - 2/3*log2(2/3)
+    @test ent_entropy(ctest1, 3) ≈ 0.
+    @test ent_entropy(ctest1, 4) ≈ 0.
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test ent_entropy(rtest2, 1) ≈ -sqrt((1+sqrt(17)/9)/2)*log2(sqrt((1+sqrt(17)/9)/2))-sqrt((1-sqrt(17)/9)/2)*log2(sqrt((1-sqrt(17)/9)/2))
+    @test ent_entropy(rtest2, 2) ≈ 0.
+    @test ent_entropy(rtest2, 3) ≈ 0.
+    @test ent_entropy(rtest2, 4) ≈ 0.
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test ent_entropy(ctest2, 1) ≈ -sqrt((1+sqrt(17)/9)/2)*log2(sqrt((1+sqrt(17)/9)/2))-sqrt((1-sqrt(17)/9)/2)*log2(sqrt((1-sqrt(17)/9)/2))
+    @test ent_entropy(ctest2, 2) ≈ 0.
+    @test ent_entropy(ctest2, 3) ≈ 0.
+    @test ent_entropy(ctest2, 4) ≈ 0.
 end
 
 @testset "enlargement of bond dimension of MPS" begin
