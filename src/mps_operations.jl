@@ -104,7 +104,8 @@ end
 
 Contraction of two MPS: <psi|phi>.
 """
-function contract(psi::Mps{T}, phi::Mps{T}) where T
+function contract(psi::Mps{T1}, phi::Mps{T2}) where {T1, T2}
+    T =  T1 <: Complex || T2 <: Complex ? ComplexF64 : Float64
     L = Matrix{T}(I, 1, 1)
     for i=1:psi.L
         L = prop_right2(L, phi.A[i], psi.A[i])
