@@ -231,25 +231,36 @@ end
 end
 
 @testset "SVD truncation of MPS" begin
-    L = 10
-    GHZ = init_mps(Float64, L, "GHZ")
-    enlarge_bond_dimension!(GHZ, 5)
-    svd_truncate!(GHZ, 3)
-    @test size(GHZ.A[1], 1) == 1
-    @test size(GHZ.A[1], 3) == 2
-    @test size(GHZ.A[2], 1) == 2
-    @test size(GHZ.A[2], 3) == 3
-    for i=3:8
-        @test size(GHZ.A[i], 1) == 3
-        @test size(GHZ.A[i], 3) == 3
-    end
-    @test size(GHZ.A[9], 1) == 3
-    @test size(GHZ.A[9], 3) == 2
-    @test size(GHZ.A[10], 1) == 2
-    @test size(GHZ.A[10], 3) == 1
-    # Check that the properties of the Mps are left intact.
-    full = init_mps(Float64, L, "full")
-    @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
+    rtest1 = MPStates.init_test_mps("rtest1")
+    svd_truncate!(rtest1, 1)
+    @test m_occupation(rtest1, 1) ≈ 0.  atol=1e-15
+    @test (m_occupation(rtest1, 2)^2 + m_occupation(rtest1, 3)^2) ≈ 1.
+    @test m_occupation(rtest1, 4) ≈ 1.
+    @test m_occupation(rtest1, 5) ≈ 0.64
+    @test m_occupation(rtest1, 6) ≈ 1.
+    ctest1 = MPStates.init_test_mps("ctest1")
+    svd_truncate!(ctest1, 1)
+    @test m_occupation(ctest1, 1) ≈ 0.  atol=1e-15
+    @test (m_occupation(ctest1, 2)^2 + m_occupation(ctest1, 3)^2) ≈ 1.
+    @test m_occupation(ctest1, 4) ≈ 1.
+    @test m_occupation(ctest1, 5) ≈ 0.64
+    @test m_occupation(ctest1, 6) ≈ 1.
+    rtest2 = MPStates.init_test_mps("rtest2")
+    svd_truncate!(rtest2, 1)
+    @test m_occupation(rtest2, 1) ≈ (0.7882054380161092)^2
+    @test m_occupation(rtest2, 2) ≈ (0.7882054380161092)^2
+    @test m_occupation(rtest2, 3) ≈ 1.
+    @test m_occupation(rtest2, 4) ≈ 1.
+    @test m_occupation(rtest2, 5) ≈ 1.
+    @test m_occupation(rtest2, 6) ≈ 0.64
+    ctest2 = MPStates.init_test_mps("ctest2")
+    svd_truncate!(ctest2, 1)
+    @test m_occupation(ctest2, 1) ≈ (0.7882054380161092)^2
+    @test m_occupation(ctest2, 2) ≈ (0.7882054380161092)^2
+    @test m_occupation(ctest2, 3) ≈ 1.
+    @test m_occupation(ctest2, 4) ≈ 1.
+    @test m_occupation(ctest2, 5) ≈ 1.
+    @test m_occupation(ctest2, 6) ≈ 0.64
 end
 
 @testset "save and read Mps in hdf5 format" for T in [Float64, ComplexF64]

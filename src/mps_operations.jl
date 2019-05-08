@@ -223,24 +223,24 @@ Truncate the bond dimension of `psi` by `max_D` using SVD decomposition.
 """
 function svd_truncate!(psi::Mps{T}, max_D::Int) where T
     # Truncate A.
-    SVt = ones(T, 1, 1)
-    for i=1:psi.L-1
-        new_A, SVt = prop_right_svd(SVt, psi.A[i], max_D)
+    US = ones(T, 1, 1)
+    for i=psi.L:-1:2
+        US, new_A = prop_left_svd(psi.A[i], US, max_D)
         psi.A[i] = new_A
     end
     # Contract and normalize last tensor.
-    @tensor new_A[i, s, j] := SVt[i, k]*psi.A[end][k, s, j]
-    psi.A[end] = new_A./norm(new_A)
+    @tensor new_A[i, s, j] := psi.A[1][i, s, k]*US[k, j]
+    psi.A[1] = new_A./norm(new_A)
 
     # Truncate B.
-    US = ones(T, 1, 1)
-    for i=psi.L:-1:2
-        US, new_B = prop_left_svd(psi.B[i], US, max_D)
+    SVt = ones(T, 1, 1)
+    for i=1:psi.L-1
+        new_B, SVt = prop_right_svd(SVt, psi.B[i], max_D)
         psi.B[i] = new_B
     end
     # Contract and normalize last tensor.
-    @tensor new_B[i, s, j] := psi.B[1][i, s, k]*US[k, j]
-    psi.B[1] = new_B./norm(new_B)
+    @tensor new_B[i, s, j] := SVt[i, k]*psi.B[end][k, s, j]
+    psi.B[end] = new_B./norm(new_B)
 
     return psi
 end
