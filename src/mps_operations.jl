@@ -324,7 +324,10 @@ function read_mps(filename::String)
             end
         end
     else
-        psi.B = make_right_canonical(psi.A)
+        right_can_A = make_right_canonical(psi.A)
+        for i=1:psi.L
+            psi.B[i] = deepcopy(right_can_A[i])
+        end
     end
     return psi
 end

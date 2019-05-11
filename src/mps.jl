@@ -4,7 +4,7 @@
 
 
 """
-    Mps{T}
+    Mps{T<:Number}
 
 Matrix product state with type T.
 
@@ -14,7 +14,7 @@ Matrix product state with type T.
 - `L::Int`: length of the Mps.
 - `d::Int`: physical bond dimension.
 """
-mutable struct Mps{T}
+struct Mps{T<:Number}
     A::Vector{Array{T, 3}}
     B::Vector{Array{T, 3}}
     L::Int

@@ -4,7 +4,7 @@
 
 
 """
-    Mpo{T}
+    Mpo{T<:Number}
 
 Matrix product operator with type T.
 
@@ -13,7 +13,7 @@ Matrix product operator with type T.
 - `L::Int`: length of the Mpo.
 - `d::Int`: physical bond dimension.
 """
-mutable struct Mpo{T}
+struct Mpo{T<:Number}
     M::Vector{Array{T, 4}}
     L::Int
     d::Int
@@ -139,8 +139,8 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
     # Interactions V_ij*n_i*n_j.
     for i=2:L
         norm(V[i, :] .+ V[:, i]) < 1e-8 && continue
-        ix_initial = min(i, findfirst(abs.(V[i, :] .+ V[:, i]) .> 1e-8))
-        ix_final = max(i, findlast(abs.(V[i, :] .+ V[:, i]) .> 1e-8))
+        ix_initial = min(i, findfirst(abs.(V[i, :] .+ V[:, i]) .>= 1e-8))
+        ix_final = max(i, findlast(abs.(V[i, :] .+ V[:, i]) .>= 1e-8))
         ix = findfirst(ix_initial .>= occ_ix)
         occ_ix[ix] = ix_final
 
