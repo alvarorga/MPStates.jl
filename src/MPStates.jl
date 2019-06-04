@@ -7,7 +7,7 @@ export m_occupation, m_fermionic_correlation, m_correlation,
     save_mps, read_mps
 export Mpo, init_hubbard_mpo, init_mpo
 export expected, m_variance
-export dmrg_1!
+export minimize!
 
 using LinearAlgebra, TensorOperations, Random, HDF5, Printf
 
