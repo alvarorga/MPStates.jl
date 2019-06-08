@@ -139,6 +139,26 @@ end
     @test contract(full, ctest2) ≈ (1im/3 - 2/3 + 2im/3)*(0.6 + 0.8im)/sqrt(2^L)
 end
 
+@testset "norm of a MPS" begin
+    L = 6
+    GHZ = init_mps(Float64, L, "GHZ")
+    W = init_mps(Float64, L, "W")
+    full = init_mps(Float64, L, "full")
+    product = init_mps(Float64, L, "product")
+    @test norm(GHZ) ≈ 1.
+    @test norm(full) ≈ 1.
+    @test norm(product) ≈ 1.
+    @test norm(W) ≈ 1.
+    rtest1 = MPStates.init_test_mps("rtest1")
+    ctest1 = MPStates.init_test_mps("ctest1")
+    rtest2 = MPStates.init_test_mps("rtest2")
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test norm(rtest1) ≈ 1.
+    @test norm(rtest2) ≈ 1.
+    @test norm(ctest1) ≈ 1.
+    @test norm(ctest2) ≈ 1.
+end
+
 @testset "schmidt decomposition" begin
     L = 4
     GHZ = init_mps(Float64, L, "GHZ")

@@ -100,17 +100,26 @@ function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
 end
 
 """
-    contract(psi::Mps, phi::Mps) where T
+    contract(psi::Mps{T1}, phi::Mps{T2}) where {T1, T2}
 
 Contraction of two MPS: <psi|phi>.
 """
 function contract(psi::Mps{T1}, phi::Mps{T2}) where {T1, T2}
-    T =  T1 <: Complex || T2 <: Complex ? ComplexF64 : Float64
+    T =  promote_type(T1, T2)
     L = Matrix{T}(I, 1, 1)
     for i=1:psi.L
         L = prop_right2(L, phi.A[i], psi.A[i])
     end
     return L[1, 1]
+end
+
+"""
+    norm(psi::Mps{T}) where T
+
+Norm of a MPS: <psi|psi>. Extend the LinearAlgebra module function.
+"""
+function LinearAlgebra.norm(psi::Mps{T}) where T
+    return contract(psi, psi)
 end
 
 """
