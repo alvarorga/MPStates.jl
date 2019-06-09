@@ -2,11 +2,11 @@ module MPStates
 
 export Mps, init_mps
 export m_occupation, m_fermionic_correlation, m_correlation,
-    m_2occupations, contract, ent_entropy,
+    m_2occupations, contract, norm, ent_entropy,
     enlarge_bond_dimension!, svd_truncate!,
     save_mps, read_mps
 export Mpo, init_hubbard_mpo, init_mpo
-export expected, m_variance
+export expected, m_variance, apply!
 export minimize!
 
 using LinearAlgebra, TensorOperations, Random, HDF5, Printf
