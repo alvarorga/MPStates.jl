@@ -226,11 +226,11 @@ function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T
 end
 
 """
-    svd_truncate!(psi::Mps{T}, max_D::Int) where T
+    svd_truncate!(psi::Mps{T}, max_D::Int) where T<:Number
 
 Truncate the bond dimension of `psi` by `max_D` using SVD decomposition.
 """
-function svd_truncate!(psi::Mps{T}, max_D::Int) where T
+function svd_truncate!(psi::Mps{T}, max_D::Int) where T<:Number
     # Truncate A.
     US = ones(T, 1, 1)
     for i=psi.L:-1:2
@@ -253,6 +253,110 @@ function svd_truncate!(psi::Mps{T}, max_D::Int) where T
 
     return psi
 end
+
+"""
+    simplify!(psi::Mps{T}, D::Int;
+              max_sweeps::Int=500, tol::Float64=1e-6) where T<:Number
+
+Variationally simplify an Mps to make it have bond dimension `D`.
+"""
+function simplify!(psi::Mps{T}, D::Int;
+                   max_sweeps::Int=500, tol::Float64=1e-6) where T<:Number
+    # Normalize state if it is not normalized.
+    norm_psi = norm(psi)
+    psi.A[end] ./= sqrt(norm_psi)
+    psi.B[end] ./= sqrt(norm_psi)
+
+    # Copy original state to make it the objective state to which we want to
+    # approximate. Make it a new Mps.
+    obj_A = deepcopy(psi.A)
+    obj = Mps(obj_A, obj_A, psi.L, psi.d)
+    # Reduce the bond dimension of the state to the wanted one.
+    svd_truncate!(psi, D)
+
+    # Create left and right environments.
+    Le = fill(ones(T, 1, 1), psi.L)
+    Re = fill(ones(T, 1, 1), psi.L)
+    # Initialize left environment.
+    for i=2:psi.L
+        Le[i] = prop_right2(Le[i-1], psi.A[i-1], obj.A[i-1])
+    end
+
+    # Compute distance of new state to the objective one.
+    dist = [2. - 2*real(contract(psi, obj))]
+    dist_converged = false
+    nsweep = 2
+    while dist[nsweep-1] > tol && nsweep <= max_sweeps+1 && !dist_converged
+        # Do left and right sweeps.
+        do_sweep_simplify!(psi, obj, Le, Re, -1)
+        do_sweep_simplify!(psi, obj, Le, Re, +1)
+        # Compute distance of `psi` to objective after sweeps. Use abs to
+        # remove any phase that could enter in `psi`.
+        push!(dist, 2. - 2*abs(real(contract(psi, obj))))
+        # Update while loop control parameters.
+        dist_converged = abs(dist[nsweep] - dist[nsweep-1]) < 1e-8
+        nsweep += 1
+    end
+
+    # Update right canonical part of the state `psi.B`.
+    right_can_A = make_right_canonical(psi.A)
+    for i=1:psi.L
+        psi.B[i] = deepcopy(right_can_A[i])
+    end
+    return
+end
+"""
+    do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
+                       Le::Vector{Array{T, 2}}, Re::Vector{Array{T, 2}},
+                       sense::Int) where T<:Number
+
+Do a sweep to variationally simplify `psi`.
+"""
+function do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
+                            Le::Vector{Array{T, 2}}, Re::Vector{Array{T, 2}},
+                            sense::Int) where T<:Number
+
+    sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
+    # Order of sites to do the sweep.
+    sweep_sites = sense == +1 ? (1:psi.L) : reverse(1:psi.L)
+    for i in sweep_sites
+        # Compute local tensor.
+        @tensor Mi[l1, s, r1] := Le[i][l1, l2]*obj.A[i][l2, s, r2]*Re[i][r1, r2]
+        Mi = conj(Mi)
+
+        # Update left and right environments.
+        if sense == +1
+            Mi = reshape(Mi, (size(Le[i], 1)*psi.d, size(Re[i], 1)))
+            Qa, Ra = qr(Mi)
+            Qa = Matrix(Qa)
+            Qa = reshape(Qa, (size(Le[i], 1), psi.d, size(Qa, 2)))
+
+            # Update left and right environments at L[i+1] and R[i] and psi.
+            psi.A[i] = Qa
+            if i < psi.L
+                Le[i+1] = prop_right2(Le[i], Qa, obj.A[i])
+                Re[i] = Ra*Re[i]
+            end
+        else
+            Mi = reshape(Mi, (size(Le[i], 1), psi.d*size(Re[i], 1)))
+            La, Qa = lq(Mi)
+            Qa = Matrix(Qa)
+            Qa = reshape(Qa, (size(Qa, 1), psi.d, size(Re[i], 1)))
+
+            # Update left and right environments at L[i] and R[i-1] and psi.
+            psi.A[i] = Qa
+            if i > 1
+                Re[i-1] = prop_left2(Qa, obj.A[i], Re[i])
+                Le[i] = transpose(La)*Le[i]
+            end
+        end
+    end
+    return
+end
+
+#
+# INPUT/OUTPUT OF MPS.
+#
 
 """
     save_mps(filename::String, psi::Mps{T}[, save_B::Bool=true]) where T

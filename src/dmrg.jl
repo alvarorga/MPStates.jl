@@ -150,7 +150,7 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
         update_lr_envs_1s!(i, Ai, psi, H, Le, Re, sense)
 
         # Useful debug information.
-            println("site: $i, size(Hi): $(size(Hi))")
+        debug > 1 && println("site: $i, size(Hi): $(size(Hi))")
     end
     return
 end
