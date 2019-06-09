@@ -1,3 +1,4 @@
+@testset "Tensor operations" begin
 @testset "right propagation of A and B" begin
     nl1 = 2
     nl2 = 3
@@ -155,3 +156,4 @@ end
     end
     @test MPStates.prop_left4(A, M1, M2, B, R) ≈ new_R
 end
+end # @testset "Tensor operations"

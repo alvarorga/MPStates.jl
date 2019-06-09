@@ -1,5 +1,4 @@
-using MPStates, Test
-
+@testset "Operations with Mps" begin
 @testset "measure occupation at one site" begin
     rtest1 = MPStates.init_test_mps("rtest1")
     @test m_occupation(rtest1, 1) ≈ 1/9
@@ -320,3 +319,4 @@ end
     # Remove hdf5 testing file.
     isfile(filename) && rm(filename)
 end
+end # @testset "Operations with Mps"

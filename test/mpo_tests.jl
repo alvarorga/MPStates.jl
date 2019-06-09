@@ -1,5 +1,4 @@
-using MPStates, Test
-
+@testset "Operations with Mpo" begin
 @testset "make Hubbard MPO" begin
     L = 5
     t = 1.
@@ -55,3 +54,4 @@ end
     full = init_mps(Float64, L, "full")
     @test expected(Op, full) ≈ 0. atol=1e-15
 end
+end # @testset "Operations with Mpo"

@@ -1,3 +1,4 @@
+@testset "Initialization of the Mps class" begin
 @testset "make vector of arrays left & right canonical" begin
     L = 5
 
@@ -43,3 +44,4 @@
     @test norm(leftcan_A[end]) ≈ 1.
     @test norm(rightcan_A[1]) ≈ 1.
 end
+end # @testset "Initialization of the Mps class"

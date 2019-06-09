@@ -1,3 +1,4 @@
+@testset "Operations with Mpo and Mps" begin
 @testset "expectation value of Mps" begin
     L = 5
     t = 1.5
@@ -36,3 +37,4 @@ end
     W = init_mps(Float64, L, "W")
     @test m_variance(H, W) ≈ t^2*(4L-6)/L - (2t*(L-1)/L)^2
 end
+end # @testset "Operations with Mpo and Mps"
