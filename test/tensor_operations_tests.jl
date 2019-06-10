@@ -5,10 +5,25 @@
     na = 4
     nb = 5
     ns = 6
+
+    # Float64 propagation.
+    L = reshape(collect(1. : nl1*nl2), (nl1, nl2))
+    A = reshape(collect(1. : nl1*ns*na), (nl1, ns, na))
+    B = reshape(collect(3. : 2+nl2*ns*nb), (nl2, ns, nb))
+    # Do manual contraction first.
+    new_L = zeros(ComplexF64, (na, nb))
+    for a=1:na, b=1:nb
+        for l1=1:nl1, l2=1:nl2, s=1:ns
+            new_L[a, b] += L[l1, l2]*A[l1, s, a]*B[l2, s, b]
+        end
+    end
+    @test MPStates.prop_right2(L, A, B) ≈ new_L
+
+    # ComplexF64 propagation.
     L = reshape(complex.(collect(1. : nl1*nl2)), (nl1, nl2))
-    A = reshape(collect(1. : nl1*ns*na) + 1im*collect(-2. : -3+nl1*ns*na),
+    A = reshape(complex.(collect(1. : nl1*ns*na), collect(-2. : -3+nl1*ns*na)),
                 (nl1, ns, na))
-    B = reshape(collect(3. : 2+nl2*ns*nb) + 1im*collect(-1. : -2+nl2*ns*nb),
+    B = reshape(complex.(collect(3. : 2+nl2*ns*nb), collect(-1. : -2+nl2*ns*nb)),
                 (nl2, ns, nb))
     # Do manual contraction first.
     new_L = zeros(ComplexF64, (na, nb))
@@ -84,10 +99,25 @@ end
     na = 4
     nb = 5
     ns = 6
+
+    # Float64 propagation.
+    R = reshape(collect(1. : nr1*nr2), (nr1, nr2))
+    A = reshape(collect(1. : nr1*ns*na), (na, ns, nr1))
+    B = reshape(collect(3. : 2+nr2*ns*nb), (nb, ns, nr2))
+    # Do manual contraction first.
+    new_R = zeros(ComplexF64, (na, nb))
+    for a=1:na, b=1:nb
+        for r1=1:nr1, r2=1:nr2, s=1:ns
+            new_R[a, b] += R[r1, r2]*A[a, s, r1]*B[b, s, r2]
+        end
+    end
+    @test MPStates.prop_left2(A, B, R) ≈ new_R
+
+    # ComplexF64 propagation.
     R = reshape(complex.(collect(1. : nr1*nr2)), (nr1, nr2))
-    A = reshape(collect(1. : nr1*ns*na) + 1im*collect(-2. : -3+nr1*ns*na),
+    A = reshape(complex.(collect(1. : nr1*ns*na), collect(-2. : -3+nr1*ns*na)),
                 (na, ns, nr1))
-    B = reshape(collect(3. : 2+nr2*ns*nb) + 1im*collect(-1. : -2+nr2*ns*nb),
+    B = reshape(complex.(collect(3. : 2+nr2*ns*nb), collect(-1. : -2+nr2*ns*nb)),
                 (nb, ns, nr2))
     # Do manual contraction first.
     new_R = zeros(ComplexF64, (na, nb))

@@ -209,7 +209,7 @@ function init_test_mps(name::String)
 end
 
 """
-    make_left_canonical(A::Vector{Array{T, 3}}) where T
+    make_left_canonical(A::Vector{Array{T, 3}}) where T<:Number
 
 Take a vector of tensors and make it left-canonical.
 """
@@ -228,7 +228,7 @@ function make_left_canonical(A::Vector{Array{T, 3}}) where T<:Number
 end
 
 """
-    make_right_canonical(A::Vector{Array{T, 3}}) where T
+    make_right_canonical(A::Vector{Array{T, 3}}) where T<:Number
 
 Take a vector of tensors and make it right-canonical.
 """

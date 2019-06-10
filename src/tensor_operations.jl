@@ -86,16 +86,31 @@ function prop_left_svd(A::Array{T, 3}, US::Array{T, 2}, max_D::Int=-1) where T<:
 end
 
 """
-    prop_right2(L::Array{T1, 2}, A::Array{T2, 3}, B::Array{T3, 3}) where {T1, T2, T3}
+    prop_right2(L::Array{Float64, 2}, A::Array{Float64, 3}, B::Array{Float64, 3})
 
 Propagate the tensor L through the tensors A, B.
 """
-function prop_right2(L::Array{T1, 2}, A::Array{T2, 3}, B::Array{T3, 3}) where {T1, T2, T3}
-    @tensor begin
-        L1[l1, s, b] := L[l1, l2]*conj(B[l2, s, b])
-        new_L[a, b] := L1[l1, s, b]*A[l1, s, a]
-    end
-    return new_L
+function prop_right2(L::Array{Float64, 2}, A::Array{Float64, 3}, B::Array{Float64, 3})
+    Ar = reshape(A, size(A, 1), size(A, 2)*size(A, 3))
+    T1 = BLAS.gemm('T', 'N', L, Ar)
+    T1 = reshape(T1, size(T1, 1)*size(B, 2), size(A, 3))
+    Br = reshape(B, size(B, 1)*size(B, 2), size(B, 3))
+    L2 = BLAS.gemm('T', 'N', T1, Br)
+    return L2
+end
+
+"""
+    prop_right2(L::Array{ComplexF64, 2}, A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3})
+
+Propagate the tensor L through the tensors A, B.
+"""
+function prop_right2(L::Array{ComplexF64, 2}, A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3})
+    Ar = reshape(A, size(A, 1), size(A, 2)*size(A, 3))
+    T1 = BLAS.gemm('T', 'N', L, Ar)
+    T1 = reshape(T1, size(T1, 1)*size(B, 2), size(A, 3))
+    Br = reshape(B, size(B, 1)*size(B, 2), size(B, 3))
+    L2 = BLAS.gemm('T', 'N', T1, conj(Br))
+    return L2
 end
 
 """
@@ -132,16 +147,31 @@ function prop_right4(L::Array{T1, 4}, A::Array{T2, 3}, M1::Array{T3, 4},
 end
 
 """
-    prop_left2(A::Array{T1, 3}, B::Array{T2, 3}, R::Array{T3, 2}) where {T1, T2, T3}
+    prop_left2(A::Array{Float64, 3}, B::Array{Float64, 3}, R::Array{Float64, 2})
 
 Propagate the tensor R through the tensors A, B.
 """
-function prop_left2(A::Array{T1, 3}, B::Array{T2, 3}, R::Array{T3, 2}) where {T1, T2, T3}
-    @tensor begin
-        R1[a, s, r2] := A[a, s, r1]*R[r1, r2]
-        new_R[a, b] := R1[a, s, r2]*conj(B[b, s, r2])
-    end
-    return new_R
+function prop_left2(A::Array{Float64, 3}, B::Array{Float64, 3}, R::Array{Float64, 2})
+    Ar = reshape(A, size(A, 1)*size(A, 2), size(A, 3))
+    T1 = BLAS.gemm('N', 'N', Ar, R)
+    T1 = reshape(T1, size(A, 1), size(A, 2)*size(T1, 2))
+    Br = reshape(B, size(B, 1), size(B, 2)*size(B, 3))
+    L2 = BLAS.gemm('N', 'T', T1, Br)
+    return L2
+end
+
+"""
+    prop_left2(A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3}, R::Array{ComplexF64, 2})
+
+Propagate the tensor R through the tensors A, B.
+"""
+function prop_left2(A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3}, R::Array{ComplexF64, 2})
+    Ar = reshape(A, size(A, 1)*size(A, 2), size(A, 3))
+    T1 = BLAS.gemm('N', 'N', Ar, R)
+    T1 = reshape(T1, size(A, 1), size(A, 2)*size(T1, 2))
+    Br = reshape(B, size(B, 1), size(B, 2)*size(B, 3))
+    L2 = BLAS.gemm('N', 'C', T1, Br)
+    return L2
 end
 
 """

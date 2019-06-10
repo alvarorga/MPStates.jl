@@ -3,11 +3,11 @@
 #
 
 """
-    expected(Op::Mpo, psi::Mps)
+    expected(Op::Mpo, psi::Mps) where T<:Number
 
 Compute expectation value < psi|Op|psi >.
 """
-function expected(Op::Mpo{T}, psi::Mps{T}) where T
+function expected(Op::Mpo{T}, psi::Mps{T}) where T<:Number
     L = ones(T, 1, 1, 1)
     for i=1:psi.L
         L = prop_right3(L, psi.A[i], Op.M[i], psi.A[i])
@@ -16,11 +16,11 @@ function expected(Op::Mpo{T}, psi::Mps{T}) where T
 end
 
 """
-    expected2(Op::Mpo, psi::Mps)
+    expected2(Op::Mpo, psi::Mps) where T<:Number
 
 Compute expectation value of the squared operator < psi|Op^2|psi >.
 """
-function expected2(Op::Mpo{T}, psi::Mps{T}) where T
+function expected2(Op::Mpo{T}, psi::Mps{T}) where T<:Number
     L = ones(T, 1, 1, 1, 1)
     for i=1:psi.L
         L = prop_right4(L, psi.A[i], Op.M[i], Op.M[i], psi.A[i])
@@ -29,11 +29,11 @@ function expected2(Op::Mpo{T}, psi::Mps{T}) where T
 end
 
 """
-    m_variance(Op::Mpo{T}, psi::Mps{T}) where T
+    m_variance(Op::Mpo{T}, psi::Mps{T}) where T<:Number
 
 Measure variance: <psi|Op^2|psi> - <psi|Op|psi>^2.
 """
-function m_variance(Op::Mpo{T}, psi::Mps{T}) where T
+function m_variance(Op::Mpo{T}, psi::Mps{T}) where T<:Number
     return expected2(Op, psi) - expected(Op, psi)^2
 end
 

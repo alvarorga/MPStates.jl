@@ -100,12 +100,11 @@ function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
 end
 
 """
-    contract(psi::Mps{T1}, phi::Mps{T2}) where {T1, T2}
+    contract(psi::Mps{T}, phi::Mps{T}) where T<:Number
 
 Contraction of two MPS: <psi|phi>.
 """
-function contract(psi::Mps{T1}, phi::Mps{T2}) where {T1, T2}
-    T =  promote_type(T1, T2)
+function contract(psi::Mps{T}, phi::Mps{T}) where T<:Number
     L = Matrix{T}(I, 1, 1)
     for i=1:psi.L
         L = prop_right2(L, phi.A[i], psi.A[i])
@@ -114,21 +113,21 @@ function contract(psi::Mps{T1}, phi::Mps{T2}) where {T1, T2}
 end
 
 """
-    norm(psi::Mps{T}) where T
+    norm(psi::Mps{T}) where T<:Number
 
 Norm of a MPS: <psi|psi>. Extend the LinearAlgebra module function.
 """
-function LinearAlgebra.norm(psi::Mps{T}) where T
+function LinearAlgebra.norm(psi::Mps{T}) where T<:Number
     return contract(psi, psi)
 end
 
 """
-    schmidt_decomp(psi::Mps{T}, i::Int) where T
+    schmidt_decomp(psi::Mps{T}, i::Int) where T<:Number
 
 Compute the singular values of the Schmidt decomposition of state `psi` between
 sites `i` and `i+1`.
 """
-function schmidt_decomp(psi::Mps{T}, i::Int) where T
+function schmidt_decomp(psi::Mps{T}, i::Int) where T<:Number
     # The tensors 1 to i are already left-canonical in A, but we must write
     # the A tensors from i+1 to end in right-canonical form. When we do this
     # we won't need the information contained in the Q tensors.
@@ -140,11 +139,11 @@ function schmidt_decomp(psi::Mps{T}, i::Int) where T
 end
 
 """
-    ent_entropy(psi::Mps{T}, i::Int) where T
+    ent_entropy(psi::Mps{T}, i::Int) where T<:Number
 
 Compute the entanglement entropy of state `psi` between sites `i` and `i+1`.
 """
-function ent_entropy(psi::Mps{T}, i::Int) where T
+function ent_entropy(psi::Mps{T}, i::Int) where T<:Number
     rho = schmidt_decomp(psi, i)
     S = 0.
     for j=1:length(rho)
@@ -155,12 +154,12 @@ function ent_entropy(psi::Mps{T}, i::Int) where T
 end
 
 """
-    enlarge_bond_dimension(psi::Mps{T}, max_D::Int) where T
+    enlarge_bond_dimension(psi::Mps{T}, max_D::Int) where T<:Number
 
 Take a state and add 0's to the tensors until a maximum bond dimension is
 reached.
 """
-function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T
+function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
     L = psi.L
     # Resize A.
     for i=1:L
@@ -359,7 +358,7 @@ end
 #
 
 """
-    save_mps(filename::String, psi::Mps{T}[, save_B::Bool=true]) where T
+    save_mps(filename::String, psi::Mps{T}[, save_B::Bool=true]) where T<:Number
 
 Save the state `psi` in file `filename` inHDF5 format:
 - `L`: length of Mps.
@@ -372,7 +371,7 @@ Save the state `psi` in file `filename` inHDF5 format:
 More info about the HDF5 format can be found here:
     https://github.com/JuliaIO/HDF5.jl/blob/master/doc/hdf5.md
 """
-function save_mps(filename::String, psi::Mps{T}, save_B::Bool=true) where T
+function save_mps(filename::String, psi::Mps{T}, save_B::Bool=true) where T<:Number
     h5write(filename, "L", psi.L)
     h5write(filename, "d", psi.d)
     h5write(filename, "T", "$T")

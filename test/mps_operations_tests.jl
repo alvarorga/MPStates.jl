@@ -111,6 +111,10 @@ end
     W = init_mps(Float64, L, "W")
     full = init_mps(Float64, L, "full")
     product = init_mps(Float64, L, "product")
+    cGHZ = init_mps(ComplexF64, L, "GHZ")
+    cW = init_mps(ComplexF64, L, "W")
+    cfull = init_mps(ComplexF64, L, "full")
+    cproduct = init_mps(ComplexF64, L, "product")
     @test contract(GHZ, W) ≈ 0. atol=1e-15
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
     @test contract(GHZ, product) ≈ 1/sqrt(2)
@@ -122,20 +126,20 @@ end
     @test contract(rtest1, GHZ) ≈ 0. atol=1e-15
     @test contract(rtest1, full) ≈ (1/3 - 2/3 + 2/3)*(-0.6 + 0.8)/sqrt(2^L)
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test contract(ctest1, W) ≈ 0. atol=1e-15
-    @test contract(ctest1, GHZ) ≈ 0. atol=1e-15
-    @test contract(ctest1, full) ≈ (-1im/3 - 2im/3 - 2/3)*(0.6im + 0.8)/sqrt(2^L)
-    @test contract(full, ctest1) ≈ (1im/3 + 2im/3 - 2/3)*(-0.6im + 0.8)/sqrt(2^L)
+    @test contract(ctest1, cW) ≈ 0. atol=1e-15
+    @test contract(ctest1, cGHZ) ≈ 0. atol=1e-15
+    @test contract(ctest1, cfull) ≈ (-1im/3 - 2im/3 - 2/3)*(0.6im + 0.8)/sqrt(2^L)
+    @test contract(cfull, ctest1) ≈ (1im/3 + 2im/3 - 2/3)*(-0.6im + 0.8)/sqrt(2^L)
     rtest2 = MPStates.init_test_mps("rtest2")
     @test contract(rtest2, W) ≈ 0. atol=1e-15
     @test contract(rtest2, GHZ) ≈ 0.8*1/3/sqrt(2)
     @test contract(rtest2, full) ≈ (1/3 - 2/3 + 2/3)*(0.6 + 0.8)/sqrt(2^L)
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test contract(ctest2, W) ≈ 0. atol=1e-15
-    @test contract(ctest2, GHZ) ≈ -0.8*1/3/sqrt(2)
-    @test contract(GHZ, ctest2) ≈ -0.8*1/3/sqrt(2)
-    @test contract(ctest2, full) ≈ (-1im/3 - 2/3 - 2im/3)*(0.6 - 0.8im)/sqrt(2^L)
-    @test contract(full, ctest2) ≈ (1im/3 - 2/3 + 2im/3)*(0.6 + 0.8im)/sqrt(2^L)
+    @test contract(ctest2, cW) ≈ 0. atol=1e-15
+    @test contract(ctest2, cGHZ) ≈ -0.8*1/3/sqrt(2)
+    @test contract(cGHZ, ctest2) ≈ -0.8*1/3/sqrt(2)
+    @test contract(ctest2, cfull) ≈ (-1im/3 - 2/3 - 2im/3)*(0.6 - 0.8im)/sqrt(2^L)
+    @test contract(cfull, ctest2) ≈ (1im/3 - 2/3 + 2im/3)*(0.6 + 0.8im)/sqrt(2^L)
 end
 
 @testset "norm of a MPS" begin
