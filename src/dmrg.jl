@@ -143,11 +143,11 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
         Hi = reshape(Hi, (size(Le[i], 1)*psi.d*size(Re[i], 1),
                           size(Le[i], 3)*psi.d*size(Re[i], 3)))
         # Compute lowest energy eigenvector of Hi.
-        local_E, Ai = eigen(Hermitian(Hi), 1:1)
-        Ai = reshape(Ai, length(Ai))
+        Ei, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        Mi = vec(Mi)
 
         # Update left and right environments.
-        update_lr_envs_1s!(i, Ai, psi, H, Le, Re, sense)
+        update_lr_envs_1s!(i, Mi, psi, H, Le, Re, sense)
 
         # Useful debug information.
         debug > 1 && println("site: $i, size(Hi): $(size(Hi))")
@@ -220,7 +220,7 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                           size(psi.A[i], 1)*psi.d^2*size(psi.A[i+1], 3)))
 
         # Compute lowest energy eigenvector of Hi.
-        local_E, Mi = eigen(Hermitian(Hi), 1:1)
+        Ei, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         Mi = vec(Mi)
 
         # Update left and right environments.
@@ -229,7 +229,8 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
         # Useful debug information.
         if debug > 1
             println("Site: $i, size(Hi): $(size(Hi))")
-            @printf("Lowest singular value: %.2e\n\n", norm(svals))
+            @printf("Sum discarded squared singular values: %.2e\n\n",
+                    1. - norm(svals))
         end
     end
     return

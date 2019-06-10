@@ -9,7 +9,7 @@ export Mpo, init_hubbard_mpo, init_mpo
 export expected, m_variance, apply!
 export minimize!
 
-using LinearAlgebra, TensorOperations, Random, HDF5, Printf
+using LinearAlgebra, TensorOperations, Random, HDF5, Printf, Arpack
 
 include("./mps.jl")
 include("./mps_operations.jl")
