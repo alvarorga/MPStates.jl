@@ -11,10 +11,10 @@ at `s=2` is the same as measuring the number of particles, while at
 `s=1` measures the number of holes.
 """
 function m_occupation(psi::Mps{T}, i::Int, s::Int=2) where T<:Number
-    Ai = psi.A[i][:, s, :]
-    L = transpose(Ai)*conj(Ai)
+    Mi = psi.M[i][:, s, :]
+    L = transpose(Mi)*conj(Mi)
     for j=i+1:psi.L
-        L = prop_right2(L, psi.A[j], psi.A[j])
+        L = prop_right2(L, psi.M[j], psi.M[j])
     end
     return real(L[1, 1])
 end
@@ -38,11 +38,13 @@ function m_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
 end
 
 """
-    m_generic_correlation(psi::Mps{T}, i::Int, j::Int, is_fermionic::Bool) where T<:Number
+    m_generic_correlation(psi::Mps{T}, i::Int, j::Int,
+                          is_fermionic::Bool) where T<:Number
 
 Measure the correlation <c^dagger_i c_j>, with `psi` a fermion or boson state.
 """
-function m_generic_correlation(psi::Mps{T}, i::Int, j::Int, is_fermionic::Bool) where T<:Number
+function m_generic_correlation(psi::Mps{T}, i::Int, j::Int,
+                               is_fermionic::Bool) where T<:Number
     psi.d == 2 || throw("Physical dimension of Mps is not 2.")
     i != j || throw("Site i must be different than j.")
 
@@ -60,13 +62,13 @@ function m_generic_correlation(psi::Mps{T}, i::Int, j::Int, is_fermionic::Bool) 
     L = ones(T, 1, 1, 1)
     for k=1:psi.L
         if k == i
-            L = prop_right3(L, psi.A[k], cdi, psi.A[k])
+            L = prop_right3(L, psi.M[k], cdi, psi.M[k])
         elseif k == j
-            L = prop_right3(L, psi.A[k], cj, psi.A[k])
+            L = prop_right3(L, psi.M[k], cj, psi.M[k])
         elseif is_fermionic && (i < k < j || j < k < i)
-            L = prop_right3(L, psi.A[k], Z, psi.A[k])
+            L = prop_right3(L, psi.M[k], Z, psi.M[k])
         else
-            L = prop_right3(L, psi.A[k], Id, psi.A[k])
+            L = prop_right3(L, psi.M[k], Id, psi.M[k])
         end
     end
     return L[1, 1, 1]
@@ -91,9 +93,9 @@ function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
     L = ones(T, 1, 1, 1)
     for k=1:psi.L
         if k == i || k == j
-            L = prop_right3(L, psi.A[k], n, psi.A[k])
+            L = prop_right3(L, psi.M[k], n, psi.M[k])
         else
-            L = prop_right3(L, psi.A[k], Id, psi.A[k])
+            L = prop_right3(L, psi.M[k], Id, psi.M[k])
         end
     end
     return real(L[1, 1, 1])
@@ -107,7 +109,7 @@ Contraction of two MPS: <psi|phi>.
 function contract(psi::Mps{T}, phi::Mps{T}) where T<:Number
     L = Matrix{T}(I, 1, 1)
     for i=1:psi.L
-        L = prop_right2(L, phi.A[i], psi.A[i])
+        L = prop_right2(L, phi.M[i], psi.M[i])
     end
     return L[1, 1]
 end
@@ -133,7 +135,7 @@ function schmidt_decomp(psi::Mps{T}, i::Int) where T<:Number
     # we won't need the information contained in the Q tensors.
     L = Matrix{T}(I, 1, 1)
     for j=psi.L:-1:i+1
-        L = prop_lq(psi.A[j], L, false)
+        L = prop_lq(psi.M[j], L, false)
     end
     return svdvals!(L)
 end
@@ -161,10 +163,10 @@ reached.
 """
 function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
     L = psi.L
-    # Resize A.
+
     for i=1:L
-        d1 = size(psi.A[i], 1)
-        d2 = size(psi.A[i], 3)
+        d1 = size(psi.M[i], 1)
+        d2 = size(psi.M[i], 3)
         # Check if d1 needs to be resized.
         need_resize_d1 = log2(d1) < minimum([i-1, L-i+1, log2(max_D)])
         if log2(d1) < log2(max_D) < minimum([i-1, L-i+1])
@@ -184,11 +186,11 @@ function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
             new_d2 = d2
         end
 
-        # Resize A with the appropriate dimensions, if needed.
+        # Resize M with the appropriate dimensions, if needed.
         if need_resize_d1 || need_resize_d2
-            new_A = zeros(T, new_d1, psi.d, new_d2)
-            new_A[1:d1, :, 1:d2] = psi.A[i]
-            psi.A[i] = new_A
+            new_M = zeros(T, new_d1, psi.d, new_d2)
+            new_M[1:d1, :, 1:d2] = psi.M[i]
+            psi.M[i] = new_M
         end
     end
     return psi
@@ -200,15 +202,14 @@ end
 Truncate the bond dimension of `psi` by `max_D` using SVD decomposition.
 """
 function svd_truncate!(psi::Mps{T}, max_D::Int) where T<:Number
-    # Truncate A.
     US = ones(T, 1, 1)
-    for i=psi.L:-1:2
-        US, new_A = prop_left_svd(psi.A[i], US, max_D)
-        psi.A[i] = new_A
+    for i=reverse(2:psi.L)
+        US, new_M = prop_left_svd(psi.M[i], US, max_D)
+        psi.M[i] = new_M
     end
     # Contract and normalize last tensor.
-    @tensor new_A[i, s, j] := psi.A[1][i, s, k]*US[k, j]
-    psi.A[1] = new_A./norm(new_A)
+    @tensor new_M[i, s, j] := psi.M[1][i, s, k]*US[k, j]
+    psi.M[1] = new_M./norm(new_M)
 
     return psi
 end
@@ -223,12 +224,12 @@ function simplify!(psi::Mps{T}, D::Int;
                    max_sweeps::Int=500, tol::Float64=1e-6) where T<:Number
     # Normalize state if it is not normalized.
     norm_psi = norm(psi)
-    psi.A[end] ./= sqrt(norm_psi)
+    psi.M[end] ./= sqrt(norm_psi)
 
     # Copy original state to make it the objective state to which we want to
     # approximate. Make it a new Mps.
-    obj_A = deepcopy(psi.A)
-    obj = Mps(obj_A, obj_A, psi.L, psi.d)
+    obj_M = deepcopy(psi.M)
+    obj = Mps(obj_M, obj_M, psi.L, psi.d)
     # Reduce the bond dimension of the state to the wanted one.
     svd_truncate!(psi, D)
 
@@ -237,7 +238,7 @@ function simplify!(psi::Mps{T}, D::Int;
     Re = fill(ones(T, 1, 1), psi.L)
     # Initialize left environment.
     for i=2:psi.L
-        Le[i] = prop_right2(Le[i-1], psi.A[i-1], obj.A[i-1])
+        Le[i] = prop_right2(Le[i-1], psi.M[i-1], obj.M[i-1])
     end
 
     # Compute distance of new state to the objective one.
@@ -275,7 +276,7 @@ function do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
     sweep_sites = sense == +1 ? (1:psi.L) : reverse(1:psi.L)
     for i in sweep_sites
         # Compute local tensor.
-        @tensor Mi[l1, s, r1] := Le[i][l1, l2]*obj.A[i][l2, s, r2]*Re[i][r1, r2]
+        @tensor Mi[l1, s, r1] := Le[i][l1, l2]*obj.M[i][l2, s, r2]*Re[i][r1, r2]
         Mi = conj(Mi)
 
         # Update left and right environments.
@@ -286,9 +287,9 @@ function do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
             Qa = reshape(Qa, (size(Le[i], 1), psi.d, size(Qa, 2)))
 
             # Update left and right environments at L[i+1] and R[i] and psi.
-            psi.A[i] = Qa
+            psi.M[i] = Qa
             if i < psi.L
-                Le[i+1] = prop_right2(Le[i], Qa, obj.A[i])
+                Le[i+1] = prop_right2(Le[i], Qa, obj.M[i])
                 Re[i] = Ra*Re[i]
             end
         else
@@ -298,9 +299,9 @@ function do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
             Qa = reshape(Qa, (size(Qa, 1), psi.d, size(Re[i], 1)))
 
             # Update left and right environments at L[i] and R[i-1] and psi.
-            psi.A[i] = Qa
+            psi.M[i] = Qa
             if i > 1
-                Re[i-1] = prop_left2(Qa, obj.A[i], Re[i])
+                Re[i-1] = prop_left2(Qa, obj.M[i], Re[i])
                 Le[i] = transpose(La)*Le[i]
             end
         end
@@ -331,10 +332,10 @@ function save_mps(filename::String, psi::Mps{T}) where T<:Number
     is_complex = !(T <: Real)
     for i=1:psi.L
         if !is_complex
-            h5write(filename, "A$i", psi.A[i])
+            h5write(filename, "M$i", psi.M[i])
         else
-            h5write(filename, "realA$i", real(psi.A[i]))
-            h5write(filename, "imagA$i", imag(psi.A[i]))
+            h5write(filename, "realM_$i", real(psi.M[i]))
+            h5write(filename, "imagM_$i", imag(psi.M[i]))
         end
     end
     return
@@ -364,10 +365,10 @@ function read_mps(filename::String)
     psi = init_mps(T, L, "full")
     for i=1:psi.L
         if !is_complex
-            psi.A[i] = h5read(filename, "A$i")
+            psi.M[i] = h5read(filename, "M$i")
         else
-            psi.A[i] = complex.(h5read(filename, "realA$i"),
-                                h5read(filename, "imagA$i"))
+            psi.M[i] = complex.(h5read(filename, "realM_$i"),
+                                h5read(filename, "imagM_$i"))
         end
     end
 

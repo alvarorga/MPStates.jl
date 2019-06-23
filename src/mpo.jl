@@ -9,12 +9,12 @@
 Matrix product operator with type T.
 
 # Attributes:
-- `M::Vector{Array{T, 4}}`: tensor that make the Mpo.
+- `W::Vector{Array{T, 4}}`: tensor representation of the Mpo.
 - `L::Int`: length of the Mpo.
 - `d::Int`: physical bond dimension.
 """
 struct Mpo{T<:Number}
-    M::Vector{Array{T, 4}}
+    W::Vector{Array{T, 4}}
     L::Int
     d::Int
 end
@@ -31,33 +31,33 @@ Initialize a simple Hubbard model as an Mpo:
 - `U::T`: Hubbard interaction strength.
 """
 function init_hubbard_mpo(L::Int, t::T, U::T) where T<:Number
-    M = Vector{Array{T, 4}}()
+    W = Vector{Array{T, 4}}()
     # Tensors that make the structure of the Mpo.
-    Mi = zeros(T, 5, 2, 2, 5)
+    Wi = zeros(T, 5, 2, 2, 5)
     # Identity operators.
     Id = Matrix{T}(I, 2, 2)
-    Mi[1, :, :, 1] = Id
-    Mi[2, :, :, 2] = Id
+    Wi[1, :, :, 1] = Id
+    Wi[2, :, :, 2] = Id
     # Creation operators.
-    Mi[1, 1, 2, 3] = convert(T, t)
-    Mi[4, 1, 2, 2] = 1.
+    Wi[1, 1, 2, 3] = convert(T, t)
+    Wi[4, 1, 2, 2] = 1.
     # Annihilation operators.
-    Mi[3, 2, 1, 2] = 1.
-    Mi[1, 2, 1, 4] = convert(T, t)
+    Wi[3, 2, 1, 2] = 1.
+    Wi[1, 2, 1, 4] = convert(T, t)
     # Number operators.
-    Mi[1, 2, 2, 5] = convert(T, U)
-    Mi[5, 2, 2, 2] = 1.
+    Wi[1, 2, 2, 5] = convert(T, U)
+    Wi[5, 2, 2, 2] = 1.
     # Initial and final tensors.
-    M0 = reshape(Mi[1, :, :, :], (1, size(Mi, 2), size(Mi, 3), size(Mi, 4)))
-    Mend = reshape(Mi[:, :, :, 2], (size(Mi, 1), size(Mi, 2), size(Mi, 3), 1))
+    W0 = reshape(Wi[1, :, :, :], (1, size(Wi, 2), size(Wi, 3), size(Wi, 4)))
+    W_end = reshape(Wi[:, :, :, 2], (size(Wi, 1), size(Wi, 2), size(Wi, 3), 1))
 
-    push!(M, M0)
+    push!(W, W0)
     for i=2:L-1
-        push!(M, Mi)
+        push!(W, Wi)
     end
-    push!(M, Mend)
+    push!(W, W_end)
 
-    return mpo = Mpo(M, L, 2)
+    return Mpo(W, L, 2)
 end
 
 """
@@ -71,24 +71,24 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
     size(J) == (L, L) || throw("J has not the correct dimensions.")
     size(V) == (L, L) || throw("V has not the correct dimensions.")
 
-    M = Vector{Array{T, 4}}()
+    W = Vector{Array{T, 4}}()
     Id = Matrix{T}(I, 2, 2)
     # 1 - 2ni operator.
     Z = Matrix{T}(I, 2, 2)
     Z[2, 2] = -one(T)
 
     # Write basic tensors.
-    Mi = zeros(T, 2+2L, 2, 2, 2+2L)
+    Wi = zeros(T, 2+2L, 2, 2, 2+2L)
     # Initial and end state Id propagators.
-    Mi[1, :, :, 1] = Id
-    Mi[2, :, :, 2] = Id
+    Wi[1, :, :, 1] = Id
+    Wi[2, :, :, 2] = Id
     for i=1:L
-        push!(M, deepcopy(Mi))
+        push!(W, deepcopy(Wi))
     end
 
     # Local terms: J[i, i]*n_i.
     for i=1:L
-        M[i][1, 2, 2, 2] = J[i, i]
+        W[i][1, 2, 2, 2] = J[i, i]
     end
 
     # Keep trace of final occupied indices in Mpo.
@@ -107,32 +107,32 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
         for j=1:i-1 # i > j.
             abs(J[i, j]) <= 1e-8 && continue
             # Operator c_j.
-            M[j][1, 2, 1, ix] = J[i, j]
+            W[j][1, 2, 1, ix] = J[i, j]
             # Operator Id for bosons or 1-2n for fermions.
             for k=j+1:i-1
                 if is_fermionic
-                    M[k][ix, :, :, ix] = Z
+                    W[k][ix, :, :, ix] = Z
                 else
-                    M[k][ix, :, :, ix] = Id
+                    W[k][ix, :, :, ix] = Id
                 end
             end
             # Operator c^dagger_i.
-            M[i][ix, 1, 2, 2] = one(T)
+            W[i][ix, 1, 2, 2] = one(T)
         end
         for j=i+1:L # i < j.
             abs(J[i, j]) < 1e-8 && continue
             # Operator c^dagger_i.
-            M[i][1, 1, 2, ix] = one(T)
+            W[i][1, 1, 2, ix] = one(T)
             # Operator Id for bosons or 1-2n for fermions.
             for k=i+1:j-1
                 if is_fermionic
-                    M[k][ix, :, :, ix] = Z
+                    W[k][ix, :, :, ix] = Z
                 else
-                    M[k][ix, :, :, ix] = Id
+                    W[k][ix, :, :, ix] = Id
                 end
             end
             # Operator c_j.
-            M[j][ix, 2, 1, 2] = J[i, j]
+            W[j][ix, 2, 1, 2] = J[i, j]
         end
     end
 
@@ -147,24 +147,24 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
         for j=1:i-1 # j < i.
             abs(V[i, j] + V[j, i]) < 1e-8 && continue
             # Operator n_j.
-            M[j][1, 2, 2, ix] = V[i, j] + V[j, i]
+            W[j][1, 2, 2, ix] = V[i, j] + V[j, i]
             # Operator Id.
             for k=j+1:i-1
-                M[k][ix, :, :, ix] = Id
+                W[k][ix, :, :, ix] = Id
             end
             # Operator n_i.
-            M[i][ix, 2, 2, 2] = one(T)
+            W[i][ix, 2, 2, 2] = one(T)
         end
     end
 
-    # Trim the unfilled region of the M tensors.
+    # Trim the unfilled region of the W tensors.
     ix_trim = findlast(occ_ix .> 0)
     for i=1:L
-        M[i] = M[i][1:ix_trim, :, :, 1:ix_trim]
+        W[i] = W[i][1:ix_trim, :, :, 1:ix_trim]
     end
 
-    M[1] = M[1][1:1, :, :, :]
-    M[end] = M[end][:, :, :, 2:2]
+    W[1] = W[1][1:1, :, :, :]
+    W[end] = W[end][:, :, :, 2:2]
 
-    return Mpo(M, L, 2)
+    return Mpo(W, L, 2)
 end

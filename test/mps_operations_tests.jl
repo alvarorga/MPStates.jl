@@ -234,18 +234,18 @@ end
     L = 10
     GHZ = init_mps(Float64, L, "GHZ")
     enlarge_bond_dimension!(GHZ, 5)
-    @test size(GHZ.A[1], 1) == 1
-    @test size(GHZ.A[1], 3) == 2
-    @test size(GHZ.A[3], 1) == 4
-    @test size(GHZ.A[3], 3) == 5
+    @test size(GHZ.M[1], 1) == 1
+    @test size(GHZ.M[1], 3) == 2
+    @test size(GHZ.M[3], 1) == 4
+    @test size(GHZ.M[3], 3) == 5
     for i=4:7
-        @test size(GHZ.A[i], 1) == 5
-        @test size(GHZ.A[i], 3) == 5
+        @test size(GHZ.M[i], 1) == 5
+        @test size(GHZ.M[i], 3) == 5
     end
-    @test size(GHZ.A[8], 1) == 5
-    @test size(GHZ.A[8], 3) == 4
-    @test size(GHZ.A[L], 1) == 2
-    @test size(GHZ.A[L], 3) == 1
+    @test size(GHZ.M[8], 1) == 5
+    @test size(GHZ.M[8], 3) == 4
+    @test size(GHZ.M[L], 1) == 2
+    @test size(GHZ.M[L], 3) == 1
     # Check that the properties of the Mps are left intact.
     full = init_mps(Float64, L, "full")
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
@@ -299,9 +299,9 @@ end
     psi = read_mps(filename)
     @test psi.L == L
     @test psi.d == 2
-    @test eltype(psi.A[1]) == T
+    @test eltype(psi.M[1]) == T
     for i=1:L
-        @test psi.A[i] ≈ GHZ.A[i]
+        @test psi.M[i] ≈ GHZ.M[i]
     end
     # Remove hdf5 testing file.
     isfile(filename) && rm(filename)

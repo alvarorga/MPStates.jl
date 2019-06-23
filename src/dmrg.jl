@@ -3,7 +3,7 @@
 #
 
 """
-    minimize!(H::Mpo{T}, psi::Mps{T}, D::Int, algorithm::String="DMRG1";
+    minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
               max_iters::Int=500, tol::Float64=1e-6,
               debug::Int=1) where T<:Number
 
@@ -14,7 +14,7 @@ Return the energy and variance of `psi` at every sweep. The `debug` parameter
 controls the amount of information the script outputs at runtime. Possible
 algorithms to minimize the energy are: "DMRG1": 1-site DMRG.
 """
-function minimize!(H::Mpo{T}, psi::Mps{T}, D::Int, algorithm::String="DMRG1";
+function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
                    max_iters::Int=500, tol::Float64=1e-6,
                    debug::Int=1) where T<:Number
     # Increase bond dimension.
@@ -26,7 +26,7 @@ function minimize!(H::Mpo{T}, psi::Mps{T}, D::Int, algorithm::String="DMRG1";
     Re = fill(ones(T, 1, 1, 1), psi.L)
     # Initialize left environment.
     for i=2:psi.L
-        Le[i] = prop_right3(Le[i-1], psi.A[i-1], H.M[i-1], psi.A[i-1])
+        Le[i] = prop_right3(Le[i-1], psi.M[i-1], H.W[i-1], psi.M[i-1])
     end
 
     # Compute energy of state and variance at each sweep. We start at iteration
@@ -77,41 +77,41 @@ end
 #
 
 """
-    update_lr_envs_1s!(i::Int, Ai::Vector{T}, psi::Mps{T}, H::Mpo{T},
+    update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                        Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                        sense::Int) where T<:Number
 
 Update the left and right environments after the local Hamiltonian is minimized.
 """
-function update_lr_envs_1s!(i::Int, Ai::Vector{T}, psi::Mps{T}, H::Mpo{T},
+function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                             sense::Int) where T<:Number
     if sense == +1
-        Ai = reshape(Ai, (size(Le[i], 1)*psi.d, size(Re[i], 1)))
-        Qa, Ra = qr(Ai)
-        Qa = Matrix(Qa)
-        Qa = reshape(Qa, (size(Le[i], 1), psi.d, size(Qa, 2)))
+        Mi = reshape(Mi, (size(Le[i], 1)*psi.d, size(Re[i], 1)))
+        Ai, R = qr(Mi)
+        Ai = Matrix(Ai)
+        Ai = reshape(Ai, (size(Le[i], 1), psi.d, size(Ai, 2)))
 
-        # Update left and right environments at L[i+1] and R[i] and psi.
-        psi.A[i] = Qa
+        # Update left and right environments at Le[i+1] and Re[i] and psi.
+        psi.M[i] = Ai
         if i < psi.L
-            Le[i+1] = prop_right3(Le[i], Qa, H.M[i], Qa)
-            @tensor Re[i][r1, r2, r3] = Ra[r1, a]*Ra[r3, b]*Re[i][a, r2, b]
+            Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
+            @tensor Re[i][r1, r2, r3] = R[r1, a]*R[r3, b]*Re[i][a, r2, b]
         end
     else
-        Ai = reshape(Ai, (size(Le[i], 1), psi.d*size(Re[i], 1)))
-        La, Qa = lq(Ai)
-        Qa = Matrix(Qa)
-        Qa = reshape(Qa, (size(Qa, 1), psi.d, size(Re[i], 1)))
+        Mi = reshape(Mi, (size(Le[i], 1), psi.d*size(Re[i], 1)))
+        L, Bi = lq(Mi)
+        Bi = Matrix(Bi)
+        Bi = reshape(Bi, (size(Bi, 1), psi.d, size(Re[i], 1)))
 
-        # Update left and right environments at L[i] and R[i-1] and psi.
-        psi.A[i] = Qa
+        # Update left and right environments at Le[i] and Re[i-1] and psi.
+        psi.M[i] = Bi
         if i > 1
-            Re[i-1] = prop_left3(Qa, H.M[i], Qa, Re[i])
-            @tensor Le[i][l1, l2, l3] = Le[i][a, l2, b]*La[a, l1]*La[b, l3]
+            Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
+            @tensor Le[i][l1, l2, l3] = Le[i][a, l2, b]*L[a, l1]*L[b, l3]
         end
     end
-    return
+    return psi
 end
 
 """
@@ -132,7 +132,7 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
     for i in sweep_sites
         # Compute local Hamiltonian.
         @tensor Hi[l1, s1, r1, l3, s2, r3] := (Le[i][l1, l2, l3]
-                                               *H.M[i][l2, s1, s2, r2]
+                                               *H.W[i][l2, s1, s2, r2]
                                                *Re[i][r1, r2, r3])
         Hi = reshape(Hi, (size(Le[i], 1)*psi.d*size(Re[i], 1),
                           size(Le[i], 3)*psi.d*size(Re[i], 3)))
@@ -141,12 +141,12 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
         Mi = vec(Mi)
 
         # Update left and right environments.
-        update_lr_envs_1s!(i, Mi, psi, H, Le, Re, sense)
+        update_lr_envs_1s!(psi, i, Mi, H, Le, Re, sense)
 
         # Useful debug information.
         debug > 1 && println("site: $i, size(Hi): $(size(Hi))")
     end
-    return
+    return psi
 end
 
 #
@@ -154,18 +154,18 @@ end
 #
 
 """
-    update_lr_envs_2s!(i::Int, Mi::Vector{T}, psi::Mps{T}, H::Mpo{T},
+    update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                        Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                        max_D::Int, sense::Int) where T<:Number
 
 Update the left and right environments after the local Hamiltonian is minimized
 with 2-site algorithm.
 """
-function update_lr_envs_2s!(i::Int, Mi::Vector{T}, psi::Mps{T}, H::Mpo{T},
+function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                             max_D::Int, sense::Int) where T<:Number
     # Decompose the Mi tensor spanning sites i and i+1 with SVD.
-    Mi = reshape(Mi, size(psi.A[i], 1)*psi.d, psi.d*size(psi.A[i+1], 3))
+    Mi = reshape(Mi, size(psi.M[i], 1)*psi.d, psi.d*size(psi.M[i+1], 3))
     F = svd(Mi)
     # Keep the bond dimension stable by removing the lowest singular values.
     trim = min(max_D, length(F.S))
@@ -179,13 +179,13 @@ function update_lr_envs_2s!(i::Int, Mi::Vector{T}, psi::Mps{T}, H::Mpo{T},
         U = F.U[:, 1:trim]*S
         Vt = F.Vt[1:trim, :]
     end
-    U = reshape(U, size(psi.A[i], 1), psi.d, length(svals))
-    Vt = reshape(Vt, length(svals), psi.d, size(psi.A[i+1], 3))
+    U = reshape(U, size(psi.M[i], 1), psi.d, length(svals))
+    Vt = reshape(Vt, length(svals), psi.d, size(psi.M[i+1], 3))
     # Update environments and state.
-    Le[i+1] = prop_right3(Le[i], U, H.M[i], U)
-    Re[i] = prop_left3(Vt, H.M[i+1], Vt, Re[i+1])
-    psi.A[i] = U
-    psi.A[i+1] = Vt
+    Le[i+1] = prop_right3(Le[i], U, H.W[i], U)
+    Re[i] = prop_left3(Vt, H.W[i+1], Vt, Re[i+1])
+    psi.M[i] = U
+    psi.M[i+1] = Vt
     return svals
 end
 
@@ -207,18 +207,18 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
     for i in sweep_sites
         # Compute local Hamiltonian.
         @tensor Hi[l1, s1, s3, r1, l3, s2, s4, r3] := (Le[i][l1, l2, l3]
-                                                       *H.M[i][l2, s1, s2, a]
-                                                       *H.M[i+1][a, s3, s4, r2]
+                                                       *H.W[i][l2, s1, s2, a]
+                                                       *H.W[i+1][a, s3, s4, r2]
                                                        *Re[i+1][r1, r2, r3])
-        Hi = reshape(Hi, (size(psi.A[i], 1)*psi.d^2*size(psi.A[i+1], 3),
-                          size(psi.A[i], 1)*psi.d^2*size(psi.A[i+1], 3)))
+        Hi = reshape(Hi, (size(psi.M[i], 1)*psi.d^2*size(psi.M[i+1], 3),
+                          size(psi.M[i], 1)*psi.d^2*size(psi.M[i+1], 3)))
 
         # Compute lowest energy eigenvector of Hi.
         Ei, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         Mi = vec(Mi)
 
         # Update left and right environments.
-        svals = update_lr_envs_2s!(i, Mi, psi, H, Le, Re, max_D, sense)
+        svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, max_D, sense)
 
         # Useful debug information.
         if debug > 1
@@ -227,5 +227,5 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                     1. - norm(svals))
         end
     end
-    return
+    return psi
 end

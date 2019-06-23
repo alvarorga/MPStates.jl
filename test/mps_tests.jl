@@ -25,25 +25,13 @@ function is_right_canonical(A::Vector{Array{T, 3}}) where T
 end
 
 @testset "Initialization of the Mps class" begin
-@testset "make vector of arrays left & right canonical" begin
-    L = 5
-
-    # Make a vector of rank-3 tensors.
-    A = Vector{Array{ComplexF64, 3}}()
-    push!(A, rand(ComplexF64, 1, 2, 2))
-    for i=2:L-1
-        push!(A, rand(ComplexF64, 2, 2, 2))
-    end
-    push!(A, rand(ComplexF64, 2, 2, 1))
-    # Make the tensors left and right canonical.
-    leftcan_A = MPStates.make_left_canonical(A)
-    rightcan_A = MPStates.make_right_canonical(A)
-
-    @test is_left_canonical(leftcan_A)
-    @test is_right_canonical(rightcan_A)
-
-    # Test norm of canonical tensors.
-    @test norm(leftcan_A[end]) ≈ 1.
-    @test norm(rightcan_A[1]) ≈ 1.
+@testset "make tensor state left & right canonical" begin
+    # Test if state is initialized in left canonical form if it is normalized.
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test is_left_canonical(rtest1.M)
+    @test MPStates.norm(rtest1) ≈ 1.
+    MPStates.make_right_canonical!(rtest1)
+    @test is_right_canonical(rtest1.M)
+    @test MPStates.norm(rtest1) ≈ 1.
 end
 end # @testset "Initialization of the Mps class"

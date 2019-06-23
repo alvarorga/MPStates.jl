@@ -51,6 +51,7 @@ end
     Op = init_mpo(L, J, V, true)
     rtest1 = MPStates.init_test_mps("rtest1")
     apply!(Op, rtest1)
+    MPStates.make_left_canonical!(rtest1, false)
     @test norm(rtest1) ≈ 4/9
     @test m_occupation(rtest1, 1) ≈ 4/9
     @test m_occupation(rtest1, 2) ≈ 0. atol=1e-15
@@ -61,6 +62,7 @@ end
     ctest2 = MPStates.init_test_mps("ctest2")
     Op = init_mpo(L, complex.(J), complex.(V), true)
     apply!(Op, ctest2)
+    MPStates.make_left_canonical!(ctest2, false)
     @test norm(ctest2) ≈ 4/9
     @test m_occupation(ctest2, 1) ≈ 4/9
     @test m_occupation(ctest2, 2) ≈ 0. atol=1e-15

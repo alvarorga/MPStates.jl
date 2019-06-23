@@ -9,12 +9,12 @@
 Matrix product state with type T.
 
 # Attributes:
-- `A::Vector{Array{T, 3}}`: tensor representation of the Mps.
+- `M::Vector{Array{T, 3}}`: tensor representation of the Mps.
 - `L::Int`: length of the Mps.
 - `d::Int`: physical bond dimension.
 """
 struct Mps{T<:Number}
-    A::Vector{Array{T, 3}}
+    M::Vector{Array{T, 3}}
     L::Int
     d::Int
 end
@@ -22,7 +22,7 @@ end
 """
     init_mps(T::Type, L::Int, name::String, d::Int=2)
 
-Initialize an Mps.
+Initialize an Mps in left canonical form.
 
 # Arguments:
 - `T::Type`: type of the Mps.
@@ -32,21 +32,20 @@ Initialize an Mps.
 - `d::Int=2`: physical dimension.
 """
 function init_mps(T::Type, L::Int, name::String, d::Int=2)
-    A = Vector{Array{T, 3}}()
-    d = 2
+    M = Vector{Array{T, 3}}()
     # Build basis for constructing states.
     if name == "product"
         M1 = zeros(T, 1, d, 1)
         M1[1, 1, 1] = one(T)
-        M = copy(M1)
+        Mi = copy(M1)
         Mend = copy(M1)
     elseif name == "GHZ"
         M1 = zeros(T, 1, 2, 2)
         M1[1, 1, 1] = one(T)
         M1[1, 2, 2] = one(T)
-        M = zeros(T, 2, 2, 2)
-        M[1, 1, 1] = one(T)
-        M[2, 2, 2] = one(T)
+        Mi = zeros(T, 2, 2, 2)
+        Mi[1, 1, 1] = one(T)
+        Mi[2, 2, 2] = one(T)
         Mend = zeros(T, 2, 2, 1)
         Mend[1, 1, 1] = one(T)
         Mend[2, 2, 1] = one(T)
@@ -54,32 +53,33 @@ function init_mps(T::Type, L::Int, name::String, d::Int=2)
         M1 = zeros(T, 1, 2, 2)
         M1[1, 1, 1] = one(T)
         M1[1, 2, 2] = one(T)
-        M = zeros(T, 2, 2, 2)
-        M[1, 1, 1] = one(T)
-        M[2, 1, 2] = one(T)
-        M[1, 2, 2] = one(T)
+        Mi = zeros(T, 2, 2, 2)
+        Mi[1, 1, 1] = one(T)
+        Mi[2, 1, 2] = one(T)
+        Mi[1, 2, 2] = one(T)
         Mend = zeros(T, 2, 2, 1)
         Mend[2, 1, 1] = one(T)
         Mend[1, 2, 1] = one(T)
     elseif name == "random"
         M1 = rand(T, 1, d, 2)
-        M = rand(T, 2, d, 2)
+        Mi = rand(T, 2, d, 2)
         Mend = rand(T, 2, d, 1)
     elseif name == "full"
         M1 = ones(T, 1, d, 1)
-        M = ones(T, 1, d, 1)
+        Mi = ones(T, 1, d, 1)
         Mend = ones(T, 1, d, 1)
     end
 
-    # Join all tensors in arrays and make left- and right-canonical.
-    push!(A, M1)
+    # Join all tensors in a vector.
+    push!(M, M1)
     for i=2:L-1
-        push!(A, M)
+        push!(M, Mi)
     end
-    push!(A, Mend)
-    A = make_left_canonical(A)
+    push!(M, Mend)
 
-    mps = Mps(A, L, d)
+    mps = Mps(M, L, d)
+    make_left_canonical!(mps)
+    return mps
 end
 
 """
@@ -107,7 +107,6 @@ function init_test_mps(name::String)
     end
 
     M = Vector{Array{T, 3}}()
-    A = Vector{Array{T, 3}}()
     L = 6
     d = 2
     # Build basis for constructing states.
@@ -187,52 +186,55 @@ function init_test_mps(name::String)
         throw("State '$name' not valid.")
     end
 
-    # Join all tensors in arrays and make left- and right-canonical.
+    # Join all tensors in a vector.
     push!(M, M1)
     push!(M, M2)
     push!(M, M3)
     push!(M, M4)
     push!(M, M5)
     push!(M, M6)
-    A = make_left_canonical(M)
 
-    mps = Mps(A, L, d)
+    mps = Mps(M, L, d)
+    make_left_canonical!(mps)
+    return mps
 end
 
 """
-    make_left_canonical(A::Vector{Array{T, 3}}) where T<:Number
+    make_left_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Number
 
-Take a vector of tensors and make it left-canonical.
+Write an Mps in left canonical form.
 """
-function make_left_canonical(A::Vector{Array{T, 3}}) where T<:Number
-    leftcan_A = Vector{Array{T, 3}}()
+function make_left_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Number
     R = ones(T, 1, 1)
-    for i=1:length(A)-1
-        Q, R = prop_qr(R, A[i])
-        push!(leftcan_A, Q)
+    for i=1:psi.L-1
+        A, R = prop_qr(R, psi.M[i])
+        psi.M[i] = A
     end
-    # Normalize and append last tensor.
-    @tensor Aend[i, s, j] := R[i, k]*A[end][k, s, j]
-    Aend ./= norm(Aend)
-    push!(leftcan_A, Aend)
-    return leftcan_A
+    # Last tensor.
+    @tensor A_end[i, s, j] := R[i, k]*psi.M[end][k, s, j]
+    if normalize
+        A_end ./= norm(A_end)
+    end
+    psi.M[end] = A_end
+    return psi
 end
 
 """
-    make_right_canonical(A::Vector{Array{T, 3}}) where T<:Number
+    make_right_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Number
 
-Take a vector of tensors and make it right-canonical.
+Write an Mps in right canonical form.
 """
-function make_right_canonical(A::Vector{Array{T, 3}}) where T<:Number
-    rightcan_A = Vector{Array{T, 3}}()
+function make_right_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Number
     L = ones(T, 1, 1)
-    for i=length(A):-1:2
-        L, Q = prop_lq(A[i], L)
-        push!(rightcan_A, Q)
+    for i=reverse(2:psi.L)
+        L, B = prop_lq(psi.M[i], L)
+        psi.M[i] = B
     end
     # Normalize and append last tensor.
-    @tensor Aend[i, s, j] := A[1][i, s, k]*L[k, j]
-    Aend ./= norm(Aend)
-    push!(rightcan_A, Aend)
-    return reverse(rightcan_A)
+    @tensor B_end[i, s, j] := psi.M[1][i, s, k]*L[k, j]
+    if normalize
+        B_end ./= norm(B_end)
+    end
+    psi.M[1] = B_end
+    return psi
 end
