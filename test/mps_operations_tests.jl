@@ -294,8 +294,7 @@ end
     # Remove file if previous test crashed and file was not removed.
     isfile(filename) && rm(filename)
 
-    # Save Mps.
-    @test save_mps(filename, GHZ, true) == 0
+    save_mps(filename, GHZ)
     # Read Mps.
     psi = read_mps(filename)
     @test psi.L == L
@@ -303,22 +302,6 @@ end
     @test eltype(psi.A[1]) == T
     for i=1:L
         @test psi.A[i] ≈ GHZ.A[i]
-        @test psi.B[i] ≈ GHZ.B[i]
-    end
-    # Remove hdf5 testing file.
-    isfile(filename) && rm(filename)
-
-    # Make test again with save_B=false.
-    @test save_mps(filename, GHZ, false) == 0
-    # Read Mps.
-    psi = read_mps(filename)
-    @test psi.L == L
-    @test psi.d == 2
-    @test eltype(psi.A[1]) == T
-    for i=1:L
-        @test psi.A[i] ≈ GHZ.A[i]
-        # Test with abs() because some signs might be changed/gauged.
-        @test abs.(psi.B[i]) ≈ abs.(GHZ.B[i])
     end
     # Remove hdf5 testing file.
     isfile(filename) && rm(filename)

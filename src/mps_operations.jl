@@ -154,7 +154,7 @@ function ent_entropy(psi::Mps{T}, i::Int) where T<:Number
 end
 
 """
-    enlarge_bond_dimension(psi::Mps{T}, max_D::Int) where T<:Number
+    enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
 
 Take a state and add 0's to the tensors until a maximum bond dimension is
 reached.
@@ -191,36 +191,6 @@ function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
             psi.A[i] = new_A
         end
     end
-
-    # Resize B.
-    for i=1:L
-        d1 = size(psi.B[i], 1)
-        d2 = size(psi.B[i], 3)
-        need_resize_d1 = log2(d1) < minimum([i-1, L-i+1, log2(max_D)])
-        if log2(d1) < log2(max_D) < minimum([i-1, L-i+1])
-            new_d1 = max_D
-        elseif log2(d1) < minimum([i-1, L-i+1]) < log2(max_D)
-            new_d1 = 1<<minimum([i-1, L-i+1])
-        else
-            new_d1 = d1
-        end
-        # Check if d2 needs to be resized.
-        need_resize_d2 = log2(d2) < minimum([i, L-i, log2(max_D)])
-        if log2(d2) < log2(max_D) < minimum([i, L-i])
-            new_d2 = max_D
-        elseif log2(d1) < minimum([i, L-i]) < log2(max_D)
-            new_d2 = 1<<minimum([i, L-i])
-        else
-            new_d2 = d2
-        end
-
-        # Resize B with the appropriate dimensions, if needed.
-        if need_resize_d1 || need_resize_d2
-            new_B = zeros(T, new_d1, psi.d, new_d2)
-            new_B[1:d1, :, 1:d2] = psi.B[i]
-            psi.B[i] = new_B
-        end
-    end
     return psi
 end
 
@@ -240,16 +210,6 @@ function svd_truncate!(psi::Mps{T}, max_D::Int) where T<:Number
     @tensor new_A[i, s, j] := psi.A[1][i, s, k]*US[k, j]
     psi.A[1] = new_A./norm(new_A)
 
-    # Truncate B.
-    SVt = ones(T, 1, 1)
-    for i=1:psi.L-1
-        new_B, SVt = prop_right_svd(SVt, psi.B[i], max_D)
-        psi.B[i] = new_B
-    end
-    # Contract and normalize last tensor.
-    @tensor new_B[i, s, j] := SVt[i, k]*psi.B[end][k, s, j]
-    psi.B[end] = new_B./norm(new_B)
-
     return psi
 end
 
@@ -264,7 +224,6 @@ function simplify!(psi::Mps{T}, D::Int;
     # Normalize state if it is not normalized.
     norm_psi = norm(psi)
     psi.A[end] ./= sqrt(norm_psi)
-    psi.B[end] ./= sqrt(norm_psi)
 
     # Copy original state to make it the objective state to which we want to
     # approximate. Make it a new Mps.
@@ -297,13 +256,9 @@ function simplify!(psi::Mps{T}, D::Int;
         nsweep += 1
     end
 
-    # Update right canonical part of the state `psi.B`.
-    right_can_A = make_right_canonical(psi.A)
-    for i=1:psi.L
-        psi.B[i] = deepcopy(right_can_A[i])
-    end
-    return
+    return psi
 end
+
 """
     do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
                        Le::Vector{Array{T, 2}}, Re::Vector{Array{T, 2}},
@@ -350,7 +305,7 @@ function do_sweep_simplify!(psi::Mps{T}, obj::Mps{T},
             end
         end
     end
-    return
+    return psi
 end
 
 #
@@ -358,24 +313,21 @@ end
 #
 
 """
-    save_mps(filename::String, psi::Mps{T}[, save_B::Bool=true]) where T<:Number
+    save_mps(filename::String, psi::Mps{T}) where T<:Number
 
-Save the state `psi` in file `filename` inHDF5 format:
+Save the state `psi` in file `filename` in HDF5 format:
 - `L`: length of Mps.
 - `d`: physical dimension.
 - `T`: type of Mps tensor elements.
-- `save_B`: `1` if right canonical tensors `B` are stored in file.
 - `Ai`: left canonical tensors.
-- `Bi`: right canonical tensors. Only stored if `save_B == true`.
 
 More info about the HDF5 format can be found here:
     https://github.com/JuliaIO/HDF5.jl/blob/master/doc/hdf5.md
 """
-function save_mps(filename::String, psi::Mps{T}, save_B::Bool=true) where T<:Number
+function save_mps(filename::String, psi::Mps{T}) where T<:Number
     h5write(filename, "L", psi.L)
     h5write(filename, "d", psi.d)
     h5write(filename, "T", "$T")
-    h5write(filename, "save_B", save_B == true ? 1 : 0)
     is_complex = !(T <: Real)
     for i=1:psi.L
         if !is_complex
@@ -385,17 +337,7 @@ function save_mps(filename::String, psi::Mps{T}, save_B::Bool=true) where T<:Num
             h5write(filename, "imagA$i", imag(psi.A[i]))
         end
     end
-    if save_B
-        for i=1:psi.L
-            if !is_complex
-                h5write(filename, "B$i", psi.B[i])
-            else
-                h5write(filename, "realB$i", real(psi.B[i]))
-                h5write(filename, "imagB$i", imag(psi.B[i]))
-            end
-        end
-    end
-    return 0
+    return
 end
 
 """
@@ -424,22 +366,10 @@ function read_mps(filename::String)
         if !is_complex
             psi.A[i] = h5read(filename, "A$i")
         else
-            psi.A[i] = h5read(filename, "realA$i") + 1im*h5read(filename, "imagA$i")
+            psi.A[i] = complex.(h5read(filename, "realA$i"),
+                                h5read(filename, "imagA$i"))
         end
     end
-    if h5read(filename, "save_B") == 1
-        for i=1:psi.L
-            if !is_complex
-                psi.B[i] = h5read(filename, "B$i")
-            else
-                psi.B[i] = h5read(filename, "realB$i") + 1im*h5read(filename, "imagB$i")
-            end
-        end
-    else
-        right_can_A = make_right_canonical(psi.A)
-        for i=1:psi.L
-            psi.B[i] = deepcopy(right_can_A[i])
-        end
-    end
+
     return psi
 end

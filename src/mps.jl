@@ -9,14 +9,12 @@
 Matrix product state with type T.
 
 # Attributes:
-- `A::Vector{Array{T, 3}}`: left-canonical representation.
-- `B::Vector{Array{T, 3}}`: right-canonical representation.
+- `A::Vector{Array{T, 3}}`: tensor representation of the Mps.
 - `L::Int`: length of the Mps.
 - `d::Int`: physical bond dimension.
 """
 struct Mps{T<:Number}
     A::Vector{Array{T, 3}}
-    B::Vector{Array{T, 3}}
     L::Int
     d::Int
 end
@@ -35,7 +33,6 @@ Initialize an Mps.
 """
 function init_mps(T::Type, L::Int, name::String, d::Int=2)
     A = Vector{Array{T, 3}}()
-    B = Vector{Array{T, 3}}()
     d = 2
     # Build basis for constructing states.
     if name == "product"
@@ -76,17 +73,13 @@ function init_mps(T::Type, L::Int, name::String, d::Int=2)
 
     # Join all tensors in arrays and make left- and right-canonical.
     push!(A, M1)
-    push!(B, M1)
     for i=2:L-1
         push!(A, M)
-        push!(B, M)
     end
     push!(A, Mend)
-    push!(B, Mend)
     A = make_left_canonical(A)
-    B = make_right_canonical(B)
 
-    mps = Mps(A, B, L, d)
+    mps = Mps(A, L, d)
 end
 
 """
@@ -115,7 +108,6 @@ function init_test_mps(name::String)
 
     M = Vector{Array{T, 3}}()
     A = Vector{Array{T, 3}}()
-    B = Vector{Array{T, 3}}()
     L = 6
     d = 2
     # Build basis for constructing states.
@@ -203,9 +195,8 @@ function init_test_mps(name::String)
     push!(M, M5)
     push!(M, M6)
     A = make_left_canonical(M)
-    B = make_right_canonical(M)
 
-    mps = Mps(A, B, L, d)
+    mps = Mps(A, L, d)
 end
 
 """

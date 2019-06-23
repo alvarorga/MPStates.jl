@@ -58,10 +58,8 @@ function apply!(Op::Mpo{T}, psi::Mps{T}) where T<:Number
     right_can_A = make_right_canonical(M)
     for i=1:psi.L
         psi.A[i] = deepcopy(left_can_A[i])
-        psi.B[i] = deepcopy(right_can_A[i])
     end
     # Making left and right canonical normalizes the state, remove the norm.
     psi.A[end] .*= sqrt(norm_psi)
-    psi.B[end] .*= sqrt(norm_psi)
     return
 end
