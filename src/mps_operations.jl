@@ -237,7 +237,7 @@ function simplify!(psi::Mps{T}, D::Int;
     # Copy original state to make it the objective state to which we want to
     # approximate. Make it a new Mps.
     obj_M = deepcopy(psi.M)
-    obj = Mps(obj_M, obj_M, psi.L, psi.d)
+    obj = Mps(obj_M, psi.L, psi.d)
     # Reduce the bond dimension of the state to the wanted one.
     svd_truncate!(psi, D)
 

@@ -46,8 +46,8 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
         end
 
         # Compute energy and variance of `psi` after sweeps.
-        push!(E, expected(H, psi))
-        push!(var, m_variance(H, psi))
+        push!(E, real(expected(H, psi)))
+        push!(var, real(m_variance(H, psi)))
         if debug > 0
             println("Done sweep $it, bond dimension: $current_D")
             @printf("    E: %.2e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
