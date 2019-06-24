@@ -1,3 +1,5 @@
+using Test, MPStates
+
 @testset "Operations with Mps" begin
 @testset "measure occupation at one site" begin
     rtest1 = MPStates.init_test_mps("rtest1")
@@ -211,23 +213,23 @@ end
     rtest1 = MPStates.init_test_mps("rtest1")
     @test ent_entropy(rtest1, 1) ≈ -2sqrt(2)/3*log2(2sqrt(2)/3) - 1/3*log2(1/3)
     @test ent_entropy(rtest1, 2) ≈ -sqrt(5)/3*log2(sqrt(5)/3) - 2/3*log2(2/3)
-    @test ent_entropy(rtest1, 3) ≈ 0.
-    @test ent_entropy(rtest1, 4) ≈ 0.
+    @test ent_entropy(rtest1, 3) ≈ 0. atol=1e-15
+    @test ent_entropy(rtest1, 4) ≈ 0. atol=1e-15
     ctest1 = MPStates.init_test_mps("ctest1")
     @test ent_entropy(ctest1, 1) ≈ -2sqrt(2)/3*log2(2sqrt(2)/3) - 1/3*log2(1/3)
     @test ent_entropy(ctest1, 2) ≈ -sqrt(5)/3*log2(sqrt(5)/3) - 2/3*log2(2/3)
-    @test ent_entropy(ctest1, 3) ≈ 0.
-    @test ent_entropy(ctest1, 4) ≈ 0.
+    @test ent_entropy(ctest1, 3) ≈ 0. atol=1e-15
+    @test ent_entropy(ctest1, 4) ≈ 0. atol=1e-15
     rtest2 = MPStates.init_test_mps("rtest2")
     @test ent_entropy(rtest2, 1) ≈ -sqrt((1+sqrt(17)/9)/2)*log2(sqrt((1+sqrt(17)/9)/2))-sqrt((1-sqrt(17)/9)/2)*log2(sqrt((1-sqrt(17)/9)/2))
-    @test ent_entropy(rtest2, 2) ≈ 0.
-    @test ent_entropy(rtest2, 3) ≈ 0.
-    @test ent_entropy(rtest2, 4) ≈ 0.
+    @test ent_entropy(rtest2, 2) ≈ 0. atol=1e-15
+    @test ent_entropy(rtest2, 3) ≈ 0. atol=1e-15
+    @test ent_entropy(rtest2, 4) ≈ 0. atol=1e-15
     ctest2 = MPStates.init_test_mps("ctest2")
     @test ent_entropy(ctest2, 1) ≈ -sqrt((1+sqrt(17)/9)/2)*log2(sqrt((1+sqrt(17)/9)/2))-sqrt((1-sqrt(17)/9)/2)*log2(sqrt((1-sqrt(17)/9)/2))
-    @test ent_entropy(ctest2, 2) ≈ 0.
-    @test ent_entropy(ctest2, 3) ≈ 0.
-    @test ent_entropy(ctest2, 4) ≈ 0.
+    @test ent_entropy(ctest2, 2) ≈ 0. atol=1e-15
+    @test ent_entropy(ctest2, 3) ≈ 0. atol=1e-15
+    @test ent_entropy(ctest2, 4) ≈ 0. atol=1e-15
 end
 
 @testset "enlargement of bond dimension of MPS" begin

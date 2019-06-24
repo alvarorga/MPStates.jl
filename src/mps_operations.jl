@@ -11,10 +11,13 @@ at `s=2` is the same as measuring the number of particles, while at
 `s=1` measures the number of holes.
 """
 function m_occupation(psi::Mps{T}, i::Int, s::Int=2) where T<:Number
-    Mi = psi.M[i][:, s, :]
-    L = transpose(Mi)*conj(Mi)
-    for j=i+1:psi.L
-        L = prop_right2(L, psi.M[j], psi.M[j])
+    L = ones(T, 1, 1)
+    for j=1:psi.L
+        if i != j
+            L = prop_right2(L, psi.M[j], psi.M[j])
+        else
+            L = prop_right2(L, psi.M[i][:, s:s, :], psi.M[i][:, s:s, :])
+        end
     end
     return real(L[1, 1])
 end
@@ -130,14 +133,19 @@ Compute the singular values of the Schmidt decomposition of state `psi` between
 sites `i` and `i+1`.
 """
 function schmidt_decomp(psi::Mps{T}, i::Int) where T<:Number
-    # The tensors 1 to i are already left-canonical in A, but we must write
-    # the A tensors from i+1 to end in right-canonical form. When we do this
-    # we won't need the information contained in the Q tensors.
-    L = Matrix{T}(I, 1, 1)
-    for j=psi.L:-1:i+1
-        L = prop_lq(psi.M[j], L, false)
+    # Write the tensors 1 -> i in left canonical form and the tensors i+1 -> L
+    # in right canonical form. Discard the information in of the unitary
+    # matrices Q.
+    # Left canonical form.
+    L = ones(T, 1, 1)
+    for j=1:i
+        L = prop_qr(L, psi.M[j], false)
     end
-    return svdvals!(L)
+    R = ones(T, 1, 1)
+    for j=reverse(i+1:psi.L)
+        R = prop_lq(psi.M[j], R, false)
+    end
+    return svdvals!(L*R)
 end
 
 """
