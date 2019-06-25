@@ -164,6 +164,29 @@ function ent_entropy(psi::Mps{T}, i::Int) where T<:Number
 end
 
 """
+    bond_dimension_with_m(L::Int, i::Int, m::Int, d::Int)
+
+Compute the appropriate bond dimension at site `i` for an Mps of length `L`,
+physical dimension `d`, and maximum bond dimension `m`.
+
+There are L+1 possible bonds: the bond at i=1 has dimension 1 and so does the
+bond at i=L+1. The bond at site i=2 has dimension d, like the bond at i=L.
+"""
+function bond_dimension_with_m(L::Int, i::Int, m::Int, d::Int)
+    mi = m
+    if i <= L>>1
+        if (i-1)*log(d) < log(m)
+            mi = d^(i-1)
+        end
+    else
+        if (L+1-i)*log(d) < log(m)
+            mi = d^(L+1-i)
+        end
+    end
+    return mi
+end
+
+"""
     enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
 
 Take a state and add 0's to the tensors until a maximum bond dimension is
@@ -173,31 +196,17 @@ function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
     L = psi.L
 
     for i=1:L
-        d1 = size(psi.M[i], 1)
-        d2 = size(psi.M[i], 3)
-        # Check if d1 needs to be resized.
-        need_resize_d1 = log2(d1) < minimum([i-1, L-i+1, log2(max_D)])
-        if log2(d1) < log2(max_D) < minimum([i-1, L-i+1])
-            new_d1 = max_D
-        elseif log2(d1) < minimum([i-1, L-i+1]) < log2(max_D)
-            new_d1 = 1<<minimum([i-1, L-i+1])
-        else
-            new_d1 = d1
-        end
-        # Check if d2 needs to be resized.
-        need_resize_d2 = log2(d2) < minimum([i, L-i, log2(max_D)])
-        if log2(d2) < log2(max_D) < minimum([i, L-i])
-            new_d2 = max_D
-        elseif log2(d1) < minimum([i, L-i]) < log2(max_D)
-            new_d2 = 1<<minimum([i, L-i])
-        else
-            new_d2 = d2
-        end
-
+        m1 = size(psi.M[i], 1)
+        m2 = size(psi.M[i], 3)
+        # Check if m1 and m2 need to be resized.
+        new_m1 = bond_dimension_with_m(psi.L, i, max_D, psi.d)
+        new_m2 = bond_dimension_with_m(psi.L, i+1, max_D, psi.d)
+        need_resize_m1 = m1 < new_m1
+        need_resize_m2 = m2 < new_m2
         # Resize M with the appropriate dimensions, if needed.
-        if need_resize_d1 || need_resize_d2
-            new_M = zeros(T, new_d1, psi.d, new_d2)
-            new_M[1:d1, :, 1:d2] = psi.M[i]
+        if need_resize_m1 || need_resize_m2
+            new_M = zeros(T, new_m1, psi.d, new_m2)
+            new_M[1:m1, :, 1:m2] = psi.M[i]
             psi.M[i] = new_M
         end
     end
