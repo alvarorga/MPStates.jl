@@ -86,25 +86,11 @@ function prop_left_svd(A::Array{T, 3}, US::Array{T, 2}, max_D::Int=-1) where T<:
 end
 
 """
-    prop_right2(L::Array{Float64, 2}, A::Array{Float64, 3}, B::Array{Float64, 3})
+    prop_right2(L::Array{T, 2}, A::Array{T, 3}, B::Array{T, 3}) where T<:Number
 
 Propagate the tensor L through the tensors A, B.
 """
-function prop_right2(L::Array{Float64, 2}, A::Array{Float64, 3}, B::Array{Float64, 3})
-    Ar = reshape(A, size(A, 1), size(A, 2)*size(A, 3))
-    T1 = BLAS.gemm('T', 'N', L, Ar)
-    T1 = reshape(T1, size(T1, 1)*size(B, 2), size(A, 3))
-    Br = reshape(B, size(B, 1)*size(B, 2), size(B, 3))
-    L2 = BLAS.gemm('T', 'N', T1, Br)
-    return L2
-end
-
-"""
-    prop_right2(L::Array{ComplexF64, 2}, A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3})
-
-Propagate the tensor L through the tensors A, B.
-"""
-function prop_right2(L::Array{ComplexF64, 2}, A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3})
+function prop_right2(L::Array{T, 2}, A::Array{T, 3}, B::Array{T, 3}) where T<:Number
     Ar = reshape(A, size(A, 1), size(A, 2)*size(A, 3))
     T1 = BLAS.gemm('T', 'N', L, Ar)
     T1 = reshape(T1, size(T1, 1)*size(B, 2), size(A, 3))
@@ -114,13 +100,11 @@ function prop_right2(L::Array{ComplexF64, 2}, A::Array{ComplexF64, 3}, B::Array{
 end
 
 """
-    prop_right3(L::Array{T1, 3}, A::Array{T2, 3},
-                M::Array{T3, 4}, B::Array{T4, 3}) where {T1, T2, T3, T4}
+    prop_right3(L::Array{T, 3}, A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}) where T<:Number
 
 Propagate the tensor L through the tensors A, M, B.
 """
-function prop_right3(L::Array{T1, 3}, A::Array{T2, 3},
-                     M::Array{T3, 4}, B::Array{T4, 3}) where {T1, T2, T3, T4}
+function prop_right3(L::Array{T, 3}, A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}) where T<:Number
     @tensor begin
         L1[l1, l2, s2, c] := L[l1, l2, l3]*conj(B[l3, s2, c])
         L2[l1, s1, b, c] := L1[l1, l2, s2, c]*M[l2, s1, s2, b]
@@ -130,13 +114,13 @@ function prop_right3(L::Array{T1, 3}, A::Array{T2, 3},
 end
 
 """
-    prop_right4(L::Array{T1, 4}, A::Array{T2, 3}, M1::Array{T3, 4},
-                M2::Array{T4, 4}, B::Array{T5, 3}) where {T1, T2, T3, T4, T5}
+    prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
+                M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
 
 Propagate the tensor L through the tensors A, M1, M2, B.
 """
-function prop_right4(L::Array{T1, 4}, A::Array{T2, 3}, M1::Array{T3, 4},
-                     M2::Array{T4, 4}, B::Array{T5, 3}) where {T1, T2, T3, T4, T5}
+function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
+                     M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
     @tensor begin
         L1[l1, l2, l3, s3, d] := L[l1, l2, l3, l4]*conj(B[l4, s3, d])
         L2[l1, l2, s2, c, d] := L1[l1, l2, l3, s3, d]*M2[l3, s2, s3, c]
@@ -147,25 +131,11 @@ function prop_right4(L::Array{T1, 4}, A::Array{T2, 3}, M1::Array{T3, 4},
 end
 
 """
-    prop_left2(A::Array{Float64, 3}, B::Array{Float64, 3}, R::Array{Float64, 2})
+    prop_left2(A::Array{T, 3}, B::Array{T, 3}, R::Array{T, 2}) where T<:Number
 
 Propagate the tensor R through the tensors A, B.
 """
-function prop_left2(A::Array{Float64, 3}, B::Array{Float64, 3}, R::Array{Float64, 2})
-    Ar = reshape(A, size(A, 1)*size(A, 2), size(A, 3))
-    T1 = BLAS.gemm('N', 'N', Ar, R)
-    T1 = reshape(T1, size(A, 1), size(A, 2)*size(T1, 2))
-    Br = reshape(B, size(B, 1), size(B, 2)*size(B, 3))
-    L2 = BLAS.gemm('N', 'T', T1, Br)
-    return L2
-end
-
-"""
-    prop_left2(A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3}, R::Array{ComplexF64, 2})
-
-Propagate the tensor R through the tensors A, B.
-"""
-function prop_left2(A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3}, R::Array{ComplexF64, 2})
+function prop_left2(A::Array{T, 3}, B::Array{T, 3}, R::Array{T, 2}) where T<:Number
     Ar = reshape(A, size(A, 1)*size(A, 2), size(A, 3))
     T1 = BLAS.gemm('N', 'N', Ar, R)
     T1 = reshape(T1, size(A, 1), size(A, 2)*size(T1, 2))
@@ -175,13 +145,11 @@ function prop_left2(A::Array{ComplexF64, 3}, B::Array{ComplexF64, 3}, R::Array{C
 end
 
 """
-    prop_left3(A::Array{T1, 3}, M::Array{T2, 4}, B::Array{T3, 3},
-               R::Array{T4, 3}) where {T1, T2, T3, T4}
+    prop_left3(A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}, R::Array{T, 3}) where T<:Number
 
 Propagate the tensor R through the tensors A, M, B.
 """
-function prop_left3(A::Array{T1, 3}, M::Array{T2, 4}, B::Array{T3, 3},
-                    R::Array{T4, 3}) where {T1, T2, T3, T4}
+function prop_left3(A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}, R::Array{T, 3}) where T<:Number
     @tensor begin
         R1[a, s1, r2, r3] := A[a, s1, r1]*R[r1, r2, r3]
         R2[a, b, s2, r3] := R1[a, s1, r2, r3]*M[b, s1, s2, r2]
@@ -191,13 +159,13 @@ function prop_left3(A::Array{T1, 3}, M::Array{T2, 4}, B::Array{T3, 3},
 end
 
 """
-    prop_left4(A::Array{T1, 3}, M1::Array{T2, 4}, M2::Array{T3, 4},
-               B::Array{T4, 3}, R::Array{T5, 4}) where {T1, T2, T3, T4, T5}
+    prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
+               B::Array{T, 3}, R::Array{T, 4}) where T<:Number
 
 Propagate the tensor R through the tensors A, M1, M2, B.
 """
-function prop_left4(A::Array{T1, 3}, M1::Array{T2, 4}, M2::Array{T3, 4},
-                    B::Array{T4, 3}, R::Array{T5, 4}) where {T1, T2, T3, T4, T5}
+function prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
+                    B::Array{T, 3}, R::Array{T, 4}) where T<:Number
     @tensor begin
         R1[a, s1, r2, r3, r4] := A[a, s1, r1]*R[r1, r2, r3, r4]
         R2[a, b, s2, r3, r4] := R1[a, s1, r2, r3, r4]*M1[b, s1, s2, r2]
