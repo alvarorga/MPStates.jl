@@ -61,6 +61,29 @@ end
     @test MPStates.prop_right3(L, A, M, B) ≈ new_L
 end
 
+@testset "right propagation of M, and B for DMRG3S" begin
+    nl1 = 2
+    nl2 = 3
+    nl3 = 4
+    nr2 = 5
+    nr3 = 3
+    ns1 = 6
+    ns2 = 2
+    L = reshape(complex.(collect(1. : nl1*nl2*nl3)), (nl1, nl2, nl3))
+    M = reshape(complex.(collect(1. : nl2*ns1*ns2*nr2), collect(0. : -1+nl2*ns1*ns2*nr2)),
+                (nl2, ns1, ns2, nr2))
+    B = reshape(complex.(collect(3. : 2+nl3*ns2*nr3), collect(-1. : -2+nl3*ns2*nr3)),
+                (nl3, ns2, nr3))
+    # Do manual contraction first.
+    P = zeros(ComplexF64, (nl1, ns1, nr2, nr3))
+    for l1=1:nl1, s1=1:ns1, r2=1:nr2, r3=1:nr3
+        for l2=1:nl2, l3=1:nl3, s2=1:ns2
+            P[l1, s1, r2, r3] += L[l1, l2, l3]*M[l2, s1, s2, r2]*conj(B[l3, s2, r3])
+        end
+    end
+    @test MPStates.prop_right_subexp(L, M, B) ≈ P
+end
+
 @testset "right propagation of A, M1, M2, and B" begin
     nl1 = 2
     nl2 = 3
@@ -153,6 +176,29 @@ end
         end
     end
     @test MPStates.prop_left3(A, M, B, R) ≈ new_R
+end
+
+@testset "left propagation of M, and B for DMRG3S" begin
+    nr1 = 2
+    nr2 = 3
+    nr3 = 4
+    nl2 = 5
+    nl3 = 3
+    ns1 = 6
+    ns2 = 2
+    R = reshape(complex.(collect(1. : nr1*nr2*nr3)), (nr1, nr2, nr3))
+    M = reshape(complex.(collect(1. : nr2*ns1*ns2*nl2), (0. : -1+nr2*ns1*ns2*nl2)),
+                (nl2, ns1, ns2, nr2))
+    B = reshape(complex.(collect(3. : 2+nr3*ns2*nl3), (-1. : -2+nr3*ns2*nl3)),
+                (nl3, ns2, nr3))
+    # Do manual contraction first.
+    P = zeros(ComplexF64, (nr1, ns1, nl2, nl3))
+    for r1=1:nr1, s1=1:ns1, l2=1:nl2, l3=1:nl3
+        for r2=1:nr2, r3=1:nr3, s2=1:ns2
+            P[r1, s1, l2, l3] += R[r1, r2, r3]*M[l2, s1, s2, r2]*conj(B[l3, s2, r3])
+        end
+    end
+    @test MPStates.prop_left_subexp(M, B, R) ≈ P
 end
 
 @testset "right propagation of A, M1, M2, and B" begin

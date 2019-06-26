@@ -206,3 +206,29 @@ function prop_left4(A::Array{T1, 3}, M1::Array{T2, 4}, M2::Array{T3, 4},
     end
     return new_R
 end
+
+"""
+    prop_right_subexp(L::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}) where T<:Number
+
+Propagate the tensor L through the tensors M, B for the DMRG3S algorithm.
+"""
+function prop_right_subexp(L::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}) where T<:Number
+    @tensoropt begin
+        L1[l1, l2, s2, r3] := L[l1, l2, l3]*conj(B[l3, s2, r3])
+        P[l1, s1, r2, r3] := L1[l1, l2, s2, r3]*M[l2, s1, s2, r2]
+    end
+    return P
+end
+
+"""
+    prop_left_subexp(M::Array{T, 4}, B::Array{T, 3}, R::Array{T, 3}) where T<:Number
+
+Propagate the tensor R through the tensors M, B for the DMRG3S algorithm.
+"""
+function prop_left_subexp(M::Array{T, 4}, B::Array{T, 3}, R::Array{T, 3}) where T<:Number
+    @tensoropt begin
+        R1[r1, r2, s2, l3] := R[r1, r2, r3]*conj(B[l3, s2, r3])
+        P[r1, s1, l2, l3] := R1[r1, r2, s2, l3]*M[l2, s1, s2, r2]
+    end
+    return P
+end
