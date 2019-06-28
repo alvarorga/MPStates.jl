@@ -39,19 +39,19 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
         # Do left and right sweeps.
         if algorithm == "DMRG1"
             do_sweep_1s!(psi, H, Le, Re, -1, debug)
-            do_sweep_1s!(psi, H, Le, Re, +1, debug)
+            E_sweep = do_sweep_1s!(psi, H, Le, Re, +1, debug)
         else
             do_sweep_2s!(psi, H, Le, Re, -1, current_D, debug)
-            do_sweep_2s!(psi, H, Le, Re, +1, current_D, debug)
+            E_sweep = do_sweep_2s!(psi, H, Le, Re, +1, current_D, debug)
         end
 
         # Compute energy and variance of `psi` after sweeps.
-        push!(E, real(expected(H, psi)))
+        push!(E, E_sweep)
         push!(var, real(m_variance(H, psi)))
         if debug > 0
             println("Done sweep $it, bond dimension: $current_D")
-            @printf("    E: %.2e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
-            @printf("    var: %.2e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
+            @printf("    E: %.6e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
+            @printf("    var: %.6e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
             @printf("    norm(psi): %.15e\n", contract(psi, psi))
         end
 
@@ -126,6 +126,8 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                       sense::Int, debug::Int=0) where T<:Number
 
+    # Energy after the sweep.
+    E = 0.
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L) : reverse(1:psi.L)
@@ -137,16 +139,17 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
         Hi = reshape(Hi, (size(Le[i], 1)*psi.d*size(Re[i], 1),
                           size(Le[i], 3)*psi.d*size(Re[i], 3)))
         # Compute lowest energy eigenvector of Hi.
-        Ei, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        arr_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        E = real(arr_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
         update_lr_envs_1s!(psi, i, Mi, H, Le, Re, sense)
 
         # Useful debug information.
-        debug > 1 && println("site: $i, size(Hi): $(size(Hi))")
+        debug > 1 && println("site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
     end
-    return psi
+    return E
 end
 
 #
@@ -201,6 +204,8 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                       sense::Int, max_D::Int, debug::Int=0) where T<:Number
 
+    # Energy after sweep.
+    E = 0.
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L-1)
@@ -214,7 +219,8 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                           size(psi.M[i], 1)*psi.d^2*size(psi.M[i+1], 3)))
 
         # Compute lowest energy eigenvector of Hi.
-        Ei, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        arr_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        E = real(arr_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
@@ -222,10 +228,10 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
 
         # Useful debug information.
         if debug > 1
-            println("Site: $i, size(Hi): $(size(Hi))")
-            @printf("Sum discarded squared singular values: %.2e\n\n",
+            println("Site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
+            @printf("Sum of discarded squared singular values: %.2e\n\n",
                     1. - norm(svals))
         end
     end
-    return psi
+    return E
 end
