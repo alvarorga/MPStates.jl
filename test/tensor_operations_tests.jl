@@ -192,16 +192,16 @@ end
     B = reshape(complex.(collect(3. : 2+nr3*ns2*nl3), (-1. : -2+nr3*ns2*nl3)),
                 (nl3, ns2, nr3))
     # Do manual contraction first.
-    P = zeros(ComplexF64, (nr1, ns1, nl2, nl3))
+    P = zeros(ComplexF64, (ns1, nr1, nl2, nl3))
     for r1=1:nr1, s1=1:ns1, l2=1:nl2, l3=1:nl3
         for r2=1:nr2, r3=1:nr3, s2=1:ns2
-            P[r1, s1, l2, l3] += R[r1, r2, r3]*M[l2, s1, s2, r2]*conj(B[l3, s2, r3])
+            P[s1, r1, l2, l3] += R[r1, r2, r3]*M[l2, s1, s2, r2]*conj(B[l3, s2, r3])
         end
     end
     @test MPStates.prop_left_subexp(M, B, R) ≈ P
 end
 
-@testset "right propagation of A, M1, M2, and B" begin
+@testset "left propagation of A, M1, M2, and B" begin
     nr1 = 2
     nr2 = 3
     nr3 = 4

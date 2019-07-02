@@ -196,7 +196,7 @@ Propagate the tensor R through the tensors M, B for the DMRG3S algorithm.
 function prop_left_subexp(M::Array{T, 4}, B::Array{T, 3}, R::Array{T, 3}) where T<:Number
     @tensoropt begin
         R1[r1, r2, s2, l3] := R[r1, r2, r3]*conj(B[l3, s2, r3])
-        P[r1, s1, l2, l3] := R1[r1, r2, s2, l3]*M[l2, s1, s2, r2]
+        P[s1, r1, l2, l3] := R1[r1, r2, s2, l3]*M[l2, s1, s2, r2]
     end
     return P
 end
