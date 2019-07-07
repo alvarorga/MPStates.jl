@@ -100,7 +100,7 @@ function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         psi.M[i] = Ai
         if i < psi.L
             Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
-            @tensor Re[i][r1, r2, r3] = R[r1, a]*conj(R[r3, b])*Re[i][a, r2, b]
+            Re[i] = absorb_Re(Re[i], R)
         end
     else
         Mi = reshape(Mi, (size(Le[i], 1), psi.d*size(Re[i], 1)))
@@ -112,7 +112,7 @@ function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         psi.M[i] = Bi
         if i > 1
             Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
-            @tensor Le[i][l1, l2, l3] = Le[i][a, l2, b]*L[a, l1]*conj(L[b, l3])
+            Le[i] = absorb_Le(Le[i], L)
         end
     end
     return psi
@@ -136,13 +136,8 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L) : reverse(1:psi.L)
     for i in sweep_sites
-        # Compute local Hamiltonian.
-        @tensor Hi[l1, s1, r1, l3, s2, r3] := (Le[i][l1, l2, l3]
-                                               *H.W[i][l2, s1, s2, r2]
-                                               *Re[i][r1, r2, r3])
-        Hi = reshape(Hi, (size(Le[i], 1)*psi.d*size(Re[i], 1),
-                          size(Le[i], 3)*psi.d*size(Re[i], 3)))
-        # Compute lowest energy eigenvector of Hi.
+        # Compute local minimum.
+        Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i])
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         E = real(array_E[1])
         Mi = vec(Mi)
@@ -214,15 +209,8 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L-1)
     for i in sweep_sites
-        # Compute local Hamiltonian.
-        @tensor Hi[l1, s1, s3, r1, l3, s2, s4, r3] := (Le[i][l1, l2, l3]
-                                                       *H.W[i][l2, s1, s2, a]
-                                                       *H.W[i+1][a, s3, s4, r2]
-                                                       *Re[i+1][r1, r2, r3])
-        Hi = reshape(Hi, (size(psi.M[i], 1)*psi.d^2*size(psi.M[i+1], 3),
-                          size(psi.M[i], 1)*psi.d^2*size(psi.M[i+1], 3)))
-
-        # Compute lowest energy eigenvector of Hi.
+        # Compute local minimum.
+        Hi = build_local_hamiltonian_2(Le[i], H.W[i], H.W[i+1], Re[i+1])
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         E = real(array_E[1])
         Mi = vec(Mi)
@@ -283,7 +271,7 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
             Ci = reshape(psi.M[i+1], (size(psi.M[i+1], 1), psi.d*size(psi.M[i+1], 3)))
             Ci = SV*Ci
             psi.M[i+1] = reshape(Ci, (new_m, psi.d, size(Re[i+1], 1)))
-            @tensor Re[i][r1, r2, r3] = SV[r1, a]*conj(SV[r3, b])*Re[i][a, r2, b]
+            Re[i] = absorb_Re(Re[i], SV)
         end
     else
         # Subspace expansion.
@@ -314,7 +302,7 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
             Ci = reshape(psi.M[i-1], (size(psi.M[i-1], 1)*psi.d, size(psi.M[i-1], 3)))
             Ci = Ci*US
             psi.M[i-1] = reshape(Ci, (size(Le[i-1], 1), psi.d, new_m))
-            @tensor Le[i][l1, l2, l3] := Le[i][a, l2, b]*US[a, l1]*conj(US[b, l3])
+            Le[i] = absorb_Le(Le[i], US)
         end
     end
     return psi
@@ -340,13 +328,8 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L)
     for i in sweep_sites
-        # Compute local Hamiltonian.
-        @tensor Hi[l1, s1, r1, l3, s2, r3] := (Le[i][l1, l2, l3]
-                                               *H.W[i][l2, s1, s2, r2]
-                                               *Re[i][r1, r2, r3])
-        Hi = reshape(Hi, (size(Le[i], 1)*psi.d*size(Re[i], 1),
-                          size(Le[i], 3)*psi.d*size(Re[i], 3)))
-        # Compute lowest energy eigenvector of Hi.
+        # Compute local minimum.
+        Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i])
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         E1 = real(array_E[1])
         delta_E1 = E1-E

@@ -200,3 +200,65 @@ function prop_left_subexp(W::Array{T, 4}, M::Array{T, 3}, R::Array{T, 3}) where 
     end
     return P
 end
+
+"""
+    absorb_Le(Le::Array{T, 3}, M::Array{T, 2}) where T<:Number
+
+Absorb M into the left environment Le.
+"""
+function absorb_Le(Le::Array{T, 3}, M::Matrix{T}) where T<:Number
+    if size(M, 1) == size(M, 2)
+        @tensor Le[l1, l2, l3] = Le[a, l2, b]*M[a, l1]*conj(M[b, l3])
+    else
+        @tensor Le[l1, l2, l3] := Le[a, l2, b]*M[a, l1]*conj(M[b, l3])
+    end
+    return Le
+end
+
+"""
+    absorb_Re(Re::Array{T, 3}, M::Array{T, 2}) where T<:Number
+
+Absorb M into the right environment Re.
+"""
+function absorb_Re(Re::Array{T, 3}, M::Matrix{T}) where T<:Number
+    if size(M, 1) == size(M, 2)
+        @tensor Re[r1, r2, r3] = M[r1, a]*conj(M[r3, b])*Re[a, r2, b]
+    else
+        @tensor Re[r1, r2, r3] := M[r1, a]*conj(M[r3, b])*Re[a, r2, b]
+    end
+    return Re
+end
+
+
+"""
+    build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
+                            Re::Array{T, 3}) where T<:Number
+
+Build the local Hamiltonian with the left and right environments.
+"""
+function build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
+                                 Re::Array{T, 3})  where T<:Number
+    @tensoropt Hi[l1, s1, r1, l3, s2, r3] := (Le[l1, l2, l3]
+                                           *W[l2, s1, s2, r2]
+                                           *Re[r1, r2, r3])
+    Hi = reshape(Hi, (size(Le, 1)*size(W, 2)*size(Re, 1),
+                      size(Le, 3)*size(W, 3)*size(Re, 3)))
+    return Hi
+end
+
+"""
+    build_local_hamiltonian_2(Le::Array{T, 3}, W1::Array{T, 4}, W2::Array{T, 4},
+                              Re::Array{T, 3}) where T<:Number
+
+Build the local Hamiltonian with the left and right environments for DMRG2..
+"""
+function build_local_hamiltonian_2(Le::Array{T, 3}, W1::Array{T, 4}, W2::Array{T, 4},
+                                   Re::Array{T, 3})  where T<:Number
+    @tensoropt Hi[l1, s1, s3, r1, l3, s2, s4, r3] := (Le[l1, l2, l3]
+                                                      *W1[l2, s1, s2, a]
+                                                      *W2[a, s3, s4, r2]
+                                                      *Re[r1, r2, r3])
+    Hi = reshape(Hi, (size(Le, 1)*size(W1, 2)*size(W2, 2)*size(Re, 1),
+                      size(Le, 3)*size(W1, 3)*size(W2, 3)*size(Re, 3)))
+    return Hi
+end
