@@ -60,7 +60,7 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
         end
 
         # If variance converges enlarge bond dimension until it reaches `max_D`.
-        if abs(var[it] - var[it-1])/var[it] < 1e-3 && current_D != D
+        if abs(var[it] - var[it-1])/var[it] < 1e-2 && current_D != D
             current_D = min(current_D + ceil(Int, D/5), D)
             if algorithm == "DMRG1"
                 # If algorithm is 1-site we have to manually grow `D`.
