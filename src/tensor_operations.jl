@@ -208,9 +208,9 @@ Absorb M into the left environment Le.
 """
 function absorb_Le(Le::Array{T, 3}, M::Matrix{T}) where T<:Number
     if size(M, 1) == size(M, 2)
-        @tensor Le[l1, l2, l3] = Le[a, l2, b]*M[a, l1]*conj(M[b, l3])
+        @tensoropt Le[l1, l2, l3] = Le[a, l2, b]*M[a, l1]*conj(M[b, l3])
     else
-        @tensor Le[l1, l2, l3] := Le[a, l2, b]*M[a, l1]*conj(M[b, l3])
+        @tensoropt Le[l1, l2, l3] := Le[a, l2, b]*M[a, l1]*conj(M[b, l3])
     end
     return Le
 end
@@ -222,13 +222,12 @@ Absorb M into the right environment Re.
 """
 function absorb_Re(Re::Array{T, 3}, M::Matrix{T}) where T<:Number
     if size(M, 1) == size(M, 2)
-        @tensor Re[r1, r2, r3] = M[r1, a]*conj(M[r3, b])*Re[a, r2, b]
+        @tensoropt Re[r1, r2, r3] = M[r1, a]*conj(M[r3, b])*Re[a, r2, b]
     else
-        @tensor Re[r1, r2, r3] := M[r1, a]*conj(M[r3, b])*Re[a, r2, b]
+        @tensoropt Re[r1, r2, r3] := M[r1, a]*conj(M[r3, b])*Re[a, r2, b]
     end
     return Re
 end
-
 
 """
     build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
@@ -239,8 +238,37 @@ Build the local Hamiltonian with the left and right environments.
 function build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
                                  Re::Array{T, 3})  where T<:Number
     @tensoropt Hi[l1, s1, r1, l3, s2, r3] := (Le[l1, l2, l3]
-                                           *W[l2, s1, s2, r2]
-                                           *Re[r1, r2, r3])
+                                              *W[l2, s1, s2, r2]
+                                              *Re[r1, r2, r3])
+    Hi = reshape(Hi, (size(Le, 1)*size(W, 2)*size(Re, 1),
+                      size(Le, 3)*size(W, 3)*size(Re, 3)))
+    return Hi
+end
+
+"""
+    build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4}, Re::Array{T, 3},
+                            cache::Cache{T}) where T<:Number
+
+Build the local Hamiltonian with the left and right environments. Pass a
+preallocated cache that can be used to store the final tensor.
+"""
+function build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4}, Re::Array{T, 3},
+                                 cache::Cache{T})  where T<:Number
+    # Check if any cache element of appropriate size can be used.
+    needed_space = size(Le, 1)*size(W, 2)*size(Re, 1)*size(Le, 3)*size(W, 3)*size(Re, 3)
+    loc_in_cache = is_in_cache(cache, needed_space)
+    if loc_in_cache > 0
+        Hi = reshape(cache.elts[loc_in_cache],
+                     (size(Le, 1), size(W, 2), size(Re, 1),
+                      size(Le, 3), size(W, 3), size(Re, 3)))
+        @tensoropt Hi[l1, s1, r1, l3, s2, r3] = (Le[l1, l2, l3]
+                                                 *W[l2, s1, s2, r2]
+                                                 *Re[r1, r2, r3])
+    else
+        @tensoropt Hi[l1, s1, r1, l3, s2, r3] := (Le[l1, l2, l3]
+                                                  *W[l2, s1, s2, r2]
+                                                  *Re[r1, r2, r3])
+    end
     Hi = reshape(Hi, (size(Le, 1)*size(W, 2)*size(Re, 1),
                       size(Le, 3)*size(W, 3)*size(Re, 3)))
     return Hi

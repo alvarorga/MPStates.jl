@@ -36,6 +36,7 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
     var = [1e5]
     it = 2
     var_is_stuck = false
+    cache = Cache(Vector{AbstractArray{T}}())
     while var[it-1] > tol && it <= max_iters+1 && !var_is_stuck
         # Do left and right sweeps.
         if algorithm == "DMRG1"
@@ -45,8 +46,8 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
             do_sweep_2s!(psi, H, Le, Re, -1, current_D, debug)
             E_sweep = do_sweep_2s!(psi, H, Le, Re, +1, current_D, debug)
         elseif algorithm == "DMRG3S"
-            E_sweep, alpha = do_sweep_3s!(psi, H, Le, Re, -1, current_D, alpha, debug)
-            E_sweep, alpha = do_sweep_3s!(psi, H, Le, Re, +1, current_D, alpha, debug)
+            E_sweep, alpha = do_sweep_3s!(psi, H, Le, Re, -1, current_D, alpha, cache, debug)
+            E_sweep, alpha = do_sweep_3s!(psi, H, Le, Re, +1, current_D, alpha, cache, debug)
         end
 
         # Compute energy and variance of `psi` after sweeps.
@@ -312,7 +313,7 @@ end
     do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
                  Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                  sense::Int, m::Int, alpha::Float64,
-                 debug::Int=0) where T<:Number
+                 cache::Cache{T}, debug::Int=0) where T<:Number
 
 Do a sweep to locally minimize the energy of `psi` at 1 site per step. The
 direction of the sweep is given by `sense = +1, -1`.
@@ -320,16 +321,16 @@ direction of the sweep is given by `sense = +1, -1`.
 function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                       sense::Int, m::Int, alpha::Float64,
-                      debug::Int=0) where T<:Number
-
+                      cache::Cache{T}, debug::Int=0) where T<:Number
     # Energy after the sweep.
-    local E = 0.
+    E = 0.
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L)
     for i in sweep_sites
         # Compute local minimum.
-        Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i])
+        Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
+        update_cache(cache, Hi)
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         E1 = real(array_E[1])
         delta_E1 = E1-E
