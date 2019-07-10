@@ -169,7 +169,7 @@ function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             max_D::Int, sense::Int) where T<:Number
     # Decompose the Mi tensor spanning sites i and i+1 with SVD.
     Mi = reshape(Mi, size(psi.M[i], 1)*psi.d, psi.d*size(psi.M[i+1], 3))
-    F = svd(Mi)
+    F = svd!(Mi)
     # Keep the bond dimension stable by removing the lowest singular values.
     trim = min(max_D, length(F.S))
     svals = F.S[1:trim]
@@ -253,7 +253,7 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         MP = hcat(Mi, alpha*P)
 
         # Svd.
-        F = svd(MP)
+        F = svd!(MP)
         # Trim SVD to the desired bond dimension.
         new_m = min(bond_dimension_with_m(psi.L, i+1, m, psi.d), length(F.S))
         U = F.U[:, 1:new_m]
@@ -284,7 +284,7 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         MP = vcat(Mi, alpha*transpose(P))
 
         # Svd.
-        F = svd(MP)
+        F = svd!(MP)
         # Trim SVD to the desired bond dimension.
         new_m = min(bond_dimension_with_m(psi.L, i, m, psi.d), length(F.S))
         Vt = F.Vt[1:new_m, :]
@@ -331,7 +331,8 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
         update_cache(cache, Hi)
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        v0 = vec(deepcopy(psi.M[i]))
+        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
         E1 = real(array_E[1])
         delta_E1 = E1-E
         Mi = vec(Mi)
