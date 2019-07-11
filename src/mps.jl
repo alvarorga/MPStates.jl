@@ -238,3 +238,8 @@ function make_right_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Numbe
     psi.M[1] = B_end
     return psi
 end
+
+function Base.display(psi::Mps{T}) where T<:Number
+    println("MPS of length: $(psi.L), type: $(eltype(psi.M[1])), with max bond dimension: $(maximum(size.(psi.M, 3))).")
+    return
+end
