@@ -332,7 +332,7 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
     for i in sweep_sites
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
-        update_cache(cache, Hi)
+        update_cache!(cache, Hi)
         v0 = vec(deepcopy(psi.M[i]))
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
         E1 = real(array_E[1])

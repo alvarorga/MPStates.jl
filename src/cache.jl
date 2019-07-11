@@ -20,13 +20,14 @@ function is_in_cache(cache::Cache{T}, L::Int) where T<:Number
 end
 
 """
-    update_cache(cache::Cache{T}, M::AbstractArray{T}) where T<:Number
+    update_cache!(cache::Cache{T}, M::AbstractArray{T}) where T<:Number
 
 Update cache with new preallocated array M if no array with the same length is
 already stored.
 """
-function update_cache(cache::Cache{T}, M::AbstractArray{T}) where T<:Number
+function update_cache!(cache::Cache{T}, M::AbstractArray{T}) where T<:Number
     if is_in_cache(cache, length(M)) == 0
-        push!(cache.elts, M)
+        push!(cache.elts, vec(M))
     end
+    return cache
 end
