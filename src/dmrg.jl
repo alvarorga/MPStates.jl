@@ -18,7 +18,7 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
                    max_iters::Int=500, tol::Float64=1e-6,
                    debug::Int=1) where T<:Number
     # Increase bond dimension.
-    current_D = ceil(Int, D/5)
+    current_D = max(8, maximum(size.(psi.M, 3)))
     enlarge_bond_dimension!(psi, current_D)
 
     # Create left and right environments.
@@ -57,12 +57,12 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
             println("Done sweep $it, bond dimension: $current_D")
             @printf("    E: %.6e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
             @printf("    var: %.6e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
-            @printf("    norm(psi): %.15e\n", contract(psi, psi))
+            @printf("    1-norm(psi): %.2e\n", 1. - contract(psi, psi))
         end
 
         # If variance converges enlarge bond dimension until it reaches `max_D`.
         if abs(var[it] - var[it-1])/var[it] < 1e-2 && current_D != D
-            current_D = min(current_D + ceil(Int, D/5), D)
+            current_D = min(current_D*psi.d, D)
             if algorithm == "DMRG1"
                 # If algorithm is 1-site we have to manually grow `D`.
                 enlarge_bond_dimension!(psi, current_D)
@@ -258,10 +258,11 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         new_m = min(bond_dimension_with_m(psi.L, i+1, m, psi.d), length(F.S))
         U = F.U[:, 1:new_m]
         svals = F.S[1:new_m]
-        # Divide sval by norm to keep state normalized.
-        S = Diagonal(svals./norm(svals))
+        S = Diagonal(svals)
         # Trim SV in the right part to match the size of psi.M[i+1].
         SV = S*F.Vt[1:new_m, 1:size(Re[i], 1)]
+        # Divide SV by norm to keep state normalized.
+        SV ./= norm(SV)
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
         Ai = reshape(U, (size(Le[i], 1), psi.d, new_m))
@@ -289,10 +290,11 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         new_m = min(bond_dimension_with_m(psi.L, i, m, psi.d), length(F.S))
         Vt = F.Vt[1:new_m, :]
         svals = F.S[1:new_m]
-        # Divide sval by norm to keep state normalized.
-        S = Diagonal(svals./norm(svals))
+        S = Diagonal(svals)
         # Trim US in the left part to match the size of psi.M[i-1].
         US = F.U[1:size(Le[i], 1), 1:new_m]*S
+        # Divide US by norm to keep state normalized.
+        US ./= norm(US)
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
         Bi = reshape(Vt, (new_m, psi.d, size(Re[i], 1)))
