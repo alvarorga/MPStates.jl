@@ -3,7 +3,7 @@
 #
 
 """
-    minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
+    minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1";
               max_iters::Int=500, tol::Float64=1e-6,
               debug::Int=1) where T<:Number
 
@@ -14,12 +14,15 @@ Return the energy and variance of `psi` at every sweep. The `debug` parameter
 controls the amount of information the script outputs at runtime. Possible
 algorithms to minimize the energy are: "DMRG1": 1-site DMRG.
 """
-function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
+function minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1";
                    max_iters::Int=500, tol::Float64=1e-6,
                    debug::Int=1) where T<:Number
-    # Increase bond dimension.
-    current_D = max(8, maximum(size.(psi.M, 3)))
-    enlarge_bond_dimension!(psi, current_D)
+    # Initialize the bond dimension at a sufficiently large number.
+    m = max(8, maximum(size.(psi.M, 3)))
+    # Manually increase bond dimension for DMRG1.
+    if algorithm == "DMRG1"
+        enlarge_bond_dimension!(psi, m)
+    end
 
     # Create left and right environments.
     Le = fill(ones(T, 1, 1, 1), psi.L)
@@ -43,29 +46,29 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
             Es = do_sweep_1s!(psi, H, Le, Re, -1, debug)
             Es = do_sweep_1s!(psi, H, Le, Re, +1, debug)
         elseif algorithm == "DMRG2"
-            Es = do_sweep_2s!(psi, H, Le, Re, -1, current_D, cache, debug)
-            Es = do_sweep_2s!(psi, H, Le, Re, +1, current_D, cache, debug)
+            Es = do_sweep_2s!(psi, H, Le, Re, -1, m, cache, debug)
+            Es = do_sweep_2s!(psi, H, Le, Re, +1, m, cache, debug)
         elseif algorithm == "DMRG3S"
-            Es, alpha = do_sweep_3s!(psi, H, Le, Re, -1, current_D, alpha, cache, debug)
-            Es, alpha = do_sweep_3s!(psi, H, Le, Re, +1, current_D, alpha, cache, debug)
+            Es, alpha = do_sweep_3s!(psi, H, Le, Re, -1, m, alpha, cache, debug)
+            Es, alpha = do_sweep_3s!(psi, H, Le, Re, +1, m, alpha, cache, debug)
         end
 
         # Compute energy and variance of `psi` after sweeps.
         push!(E, Es)
         push!(var, real(m_variance(H, psi)))
         if debug > 0
-            println("Done sweep $it, bond dimension: $current_D")
+            println("Done sweep $it, bond dimension: $m")
             @printf("    E: %.6e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
             @printf("    var: %.6e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
-            @printf("    1-norm(psi): %.2e\n", 1. - contract(psi, psi))
+            @printf("    1-norm(psi): %.2e\n", 1. - norm(psi))
         end
 
-        # If variance converges enlarge bond dimension until it reaches `max_D`.
-        if abs(var[it] - var[it-1])/var[it] < 1e-2 && current_D != D
-            current_D = min(current_D*psi.d, D)
+        # If variance converges enlarge bond dimension until it reaches `max_m`.
+        if abs(var[it] - var[it-1])/var[it] < 1e-2 && m < max_m
+            m = min(m*psi.d, max_m)
+            # For DMRG1 the bond dimension is grown manually.
             if algorithm == "DMRG1"
-                # If algorithm is 1-site we have to manually grow `D`.
-                enlarge_bond_dimension!(psi, current_D)
+                enlarge_bond_dimension!(psi, m)
             end
         end
 
@@ -159,19 +162,19 @@ end
 """
     update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                        Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                       max_D::Int, sense::Int) where T<:Number
+                       m::Int, sense::Int) where T<:Number
 
 Update the left and right environments after the local Hamiltonian is minimized
 with 2-site algorithm.
 """
 function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                            max_D::Int, sense::Int) where T<:Number
+                            m::Int, sense::Int) where T<:Number
     # Decompose the Mi tensor spanning sites i and i+1 with SVD.
     Mi = reshape(Mi, size(psi.M[i], 1)*psi.d, psi.d*size(psi.M[i+1], 3))
     F = svd!(Mi)
     # Keep the bond dimension stable by removing the lowest singular values.
-    trim = min(max_D, length(F.S))
+    trim = min(m, length(F.S))
     svals = F.S[1:trim]
     # Divide sval by norm to keep state normalized.
     S = Diagonal(svals./norm(svals))
@@ -195,7 +198,7 @@ end
 """
     do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                  Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, max_D::Int,
+                 sense::Int, m::Int,
                  cache::Cache{T}, debug::Int=0) where T<:Number
 
 Do a sweep to locally minimize the energy of `psi` at 2 sites per step. The
@@ -203,7 +206,7 @@ direction of the sweep is given by `sense = +1, -1`.
 """
 function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, max_D::Int,
+                      sense::Int, m::Int,
                       cache::Cache{T}, debug::Int=0) where T<:Number
 
     # Energy after sweep.
@@ -215,15 +218,17 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
         # Compute local minimum.
         Hi = build_local_hamiltonian_2(Le[i], H.W[i], H.W[i+1], Re[i+1], cache)
         # Build an initial vector for eigs using the previous M tensors.
-        M1 = reshape(deepcopy(psi.M[i]), (size(psi.M[i], 1)*size(psi.M[i], 2), size(psi.M[i], 3)))
-        M2 = reshape(deepcopy(psi.M[i+1]), (size(psi.M[i+1], 1), size(psi.M[i+1], 2)*size(psi.M[i+1], 3)))
+        M1 = reshape(deepcopy(psi.M[i]),
+                     (size(psi.M[i], 1)*size(psi.M[i], 2), size(psi.M[i], 3)))
+        M2 = reshape(deepcopy(psi.M[i+1]),
+                     (size(psi.M[i+1], 1), size(psi.M[i+1], 2)*size(psi.M[i+1], 3)))
         v0 = vec(M1*M2)
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
         E = real(array_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
-        svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, max_D, sense)
+        svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, m, sense)
 
         # Useful debug information.
         if debug > 1
