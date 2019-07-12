@@ -192,8 +192,6 @@ function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
     return svals
 end
 
-using TimerOutputs
-
 """
     do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                  Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
@@ -210,19 +208,22 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
 
     # Energy after sweep.
     E = 0.
-    to = TimerOutput()
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L-1)
     for i in sweep_sites
         # Compute local minimum.
-        @timeit to "build Hi" Hi = build_local_hamiltonian_2(Le[i], H.W[i], H.W[i+1], Re[i+1], cache)
-        @timeit to "eigs Hi" array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        Hi = build_local_hamiltonian_2(Le[i], H.W[i], H.W[i+1], Re[i+1], cache)
+        # Build an initial vector for eigs using the previous M tensors.
+        M1 = reshape(deepcopy(psi.M[i]), (size(psi.M[i], 1)*size(psi.M[i], 2), size(psi.M[i], 3)))
+        M2 = reshape(deepcopy(psi.M[i+1]), (size(psi.M[i+1], 1), size(psi.M[i+1], 2)*size(psi.M[i+1], 3)))
+        v0 = vec(M1*M2)
+        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
         E = real(array_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
-        @timeit to "update envs" svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, max_D, sense)
+        svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, max_D, sense)
 
         # Useful debug information.
         if debug > 1
@@ -231,7 +232,6 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                     1. - norm(svals))
         end
     end
-    println(to)
     return E
 end
 
