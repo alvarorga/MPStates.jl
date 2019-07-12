@@ -29,15 +29,15 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
         Le[i] = prop_right3(Le[i-1], psi.M[i-1], H.W[i-1], psi.M[i-1])
     end
 
-    # Compute energy of state and variance at each sweep. We start at iteration
-    # `it` = 2, starting with artificially big values in the first iteration.
+    # Compute energy of state and variance at each sweep. Iteration 1 is just
+    # the computation of the energy and the variance.
     alpha = 1e-6
-    E = [1e5]
-    var = [1e5]
+    E = [expected(H, psi)]
+    var = [m_variance(H, psi)]
     it = 2
     var_is_stuck = false
     cache = Cache(Vector{AbstractArray{T}}())
-    while var[it-1] > tol && it <= max_iters+1 && !var_is_stuck
+    while var[it-1] > tol && it <= max_iters && !var_is_stuck
         # Do left and right sweeps.
         if algorithm == "DMRG1"
             Es = do_sweep_1s!(psi, H, Le, Re, -1, debug)
