@@ -40,18 +40,18 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, D::Int, algorithm::String="DMRG1";
     while var[it-1] > tol && it <= max_iters+1 && !var_is_stuck
         # Do left and right sweeps.
         if algorithm == "DMRG1"
-            do_sweep_1s!(psi, H, Le, Re, -1, debug)
-            E_sweep = do_sweep_1s!(psi, H, Le, Re, +1, debug)
+            Es = do_sweep_1s!(psi, H, Le, Re, -1, debug)
+            Es = do_sweep_1s!(psi, H, Le, Re, +1, debug)
         elseif algorithm == "DMRG2"
-            do_sweep_2s!(psi, H, Le, Re, -1, current_D, debug)
-            E_sweep = do_sweep_2s!(psi, H, Le, Re, +1, current_D, debug)
+            Es = do_sweep_2s!(psi, H, Le, Re, -1, current_D, cache, debug)
+            Es = do_sweep_2s!(psi, H, Le, Re, +1, current_D, cache, debug)
         elseif algorithm == "DMRG3S"
-            E_sweep, alpha = do_sweep_3s!(psi, H, Le, Re, -1, current_D, alpha, cache, debug)
-            E_sweep, alpha = do_sweep_3s!(psi, H, Le, Re, +1, current_D, alpha, cache, debug)
+            Es, alpha = do_sweep_3s!(psi, H, Le, Re, -1, current_D, alpha, cache, debug)
+            Es, alpha = do_sweep_3s!(psi, H, Le, Re, +1, current_D, alpha, cache, debug)
         end
 
         # Compute energy and variance of `psi` after sweeps.
-        push!(E, E_sweep)
+        push!(E, Es)
         push!(var, real(m_variance(H, psi)))
         if debug > 0
             println("Done sweep $it, bond dimension: $current_D")
@@ -192,32 +192,37 @@ function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
     return svals
 end
 
+using TimerOutputs
+
 """
     do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                  Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, max_D::Int, debug::Int=0) where T<:Number
+                 sense::Int, max_D::Int,
+                 cache::Cache{T}, debug::Int=0) where T<:Number
 
 Do a sweep to locally minimize the energy of `psi` at 2 sites per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
 function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, max_D::Int, debug::Int=0) where T<:Number
+                      sense::Int, max_D::Int,
+                      cache::Cache{T}, debug::Int=0) where T<:Number
 
     # Energy after sweep.
     E = 0.
+    to = TimerOutput()
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L-1)
     for i in sweep_sites
         # Compute local minimum.
-        Hi = build_local_hamiltonian_2(Le[i], H.W[i], H.W[i+1], Re[i+1])
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        @timeit to "build Hi" Hi = build_local_hamiltonian_2(Le[i], H.W[i], H.W[i+1], Re[i+1], cache)
+        @timeit to "eigs Hi" array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
         E = real(array_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
-        svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, max_D, sense)
+        @timeit to "update envs" svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, max_D, sense)
 
         # Useful debug information.
         if debug > 1
@@ -226,6 +231,7 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                     1. - norm(svals))
         end
     end
+    println(to)
     return E
 end
 
@@ -332,7 +338,6 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
     for i in sweep_sites
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
-        update_cache!(cache, Hi)
         v0 = vec(deepcopy(psi.M[i]))
         array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
         E1 = real(array_E[1])
