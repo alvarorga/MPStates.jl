@@ -335,9 +335,14 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                       sense::Int, m::Int, alpha::Float64,
                       cache::Cache{T}, debug::Int=0) where T<:Number
-    # Energy after the sweep.
-    E = 0.
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
+    # Energy before the sweep starts. Depends on the sweep sense, assume the
+    # last sweep had the opposite sense.
+    if sense == +1
+        E = sum(Re[1].*Le[2])
+    else
+        E = sum(Re[psi.L-1].*Le[psi.L])
+    end
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L)
     for i in sweep_sites
@@ -360,9 +365,9 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
         end
         delta_E = E-E1
         debug > 2 && @printf("ΔE_0: %.3e, ΔE_0/ΔE_T: %.3e\n", delta_E1, delta_E/delta_E1)
-        if -delta_E/delta_E1 > 0.3
+        if -delta_E/delta_E1 > 0.3/log(m)
             alpha /= 2.
-        elseif -delta_E/delta_E1 < 0.1
+        elseif 0. < -delta_E/delta_E1 < min(1/m, 0.1)
             alpha *= 2.
         end
 
