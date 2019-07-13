@@ -240,6 +240,16 @@ function make_right_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Numbe
 end
 
 function Base.display(psi::Mps{T}) where T<:Number
-    println("MPS of length: $(psi.L), type: $(eltype(psi.M[1])), with max bond dimension: $(maximum(size.(psi.M, 3))).")
+    println("MPS:")
+    println("   Type: $(eltype(psi.M[1]))")
+    println("   Length: $(psi.L)")
+    println("   Physical dims: $(psi.d)")
+    println("   Max bond dim: $(maximum(size.(psi.M, 3)))")
+    return
+end
+
+function show_bond_dims(psi::Mps{T}) where T<:Number
+    bdims = vcat(1, size.(psi.M[:], 3))
+    println(join(bdims, "-"))
     return
 end

@@ -168,3 +168,18 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
 
     return Mpo(W, L, 2)
 end
+
+function Base.display(O::Mpo{T}) where T<:Number
+    println("MPO:")
+    println("   Type: $(eltype(O.W[1]))")
+    println("   Length: $(O.L)")
+    println("   Physical dims: $(O.d)")
+    println("   Max bond dim: $(maximum(size.(O.W, 4)))")
+    return
+end
+
+function show_bond_dims(O::Mpo{T}) where T<:Number
+    bdims = vcat(1, size.(O.W[:], 4))
+    println(join(bdims, "-"))
+    return
+end
