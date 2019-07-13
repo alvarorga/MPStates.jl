@@ -105,7 +105,7 @@ end
 Propagate the tensor L through the tensors A, M, B.
 """
 function prop_right3(L::Array{T, 3}, A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}) where T<:Number
-    @tensor begin
+    @tensoropt begin
         L1[l1, l2, s2, c] := L[l1, l2, l3]*conj(B[l3, s2, c])
         L2[l1, s1, b, c] := L1[l1, l2, s2, c]*M[l2, s1, s2, b]
         new_L[a, b, c] := L2[l1, s1, b, c]*A[l1, s1, a]
@@ -121,7 +121,7 @@ Propagate the tensor L through the tensors A, M1, M2, B.
 """
 function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
                      M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
-    @tensor begin
+    @tensoropt begin
         L1[l1, l2, l3, s3, d] := L[l1, l2, l3, l4]*conj(B[l4, s3, d])
         L2[l1, l2, s2, c, d] := L1[l1, l2, l3, s3, d]*M2[l3, s2, s3, c]
         L3[l1, s1, b, c, d] := L2[l1, l2, s2, c, d]*M1[l2, s1, s2, b]
@@ -150,11 +150,7 @@ end
 Propagate the tensor R through the tensors A, M, B.
 """
 function prop_left3(A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3}, R::Array{T, 3}) where T<:Number
-    @tensor begin
-        R1[a, s1, r2, r3] := A[a, s1, r1]*R[r1, r2, r3]
-        R2[a, b, s2, r3] := R1[a, s1, r2, r3]*M[b, s1, s2, r2]
-        new_R[a, b, c] := R2[a, b, s2, r3]*conj(B[c, s2, r3])
-    end
+    @tensoropt new_R[a, b, c] := A[a, s1, r1]*M[b, s1, s2, r2]*conj(B[c, s2, r3])*R[r1, r2, r3]
     return new_R
 end
 
@@ -166,7 +162,7 @@ Propagate the tensor R through the tensors A, M1, M2, B.
 """
 function prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
                     B::Array{T, 3}, R::Array{T, 4}) where T<:Number
-    @tensor begin
+    @tensoropt begin
         R1[a, s1, r2, r3, r4] := A[a, s1, r1]*R[r1, r2, r3, r4]
         R2[a, b, s2, r3, r4] := R1[a, s1, r2, r3, r4]*M1[b, s1, s2, r2]
         R3[a, b, c, s3, r4] := R2[a, b, s2, r3, r4]*M2[c, s2, s3, r3]
@@ -181,10 +177,7 @@ end
 Propagate the tensor L through the tensors W, M for the DMRG3S algorithm.
 """
 function prop_right_subexp(L::Array{T, 3}, W::Array{T, 4}, M::Array{T, 3}) where T<:Number
-    @tensoropt begin
-        L1[l1, l2, s2, r3] := L[l1, l2, l3]*conj(M[l3, s2, r3])
-        P[l1, s1, r2, r3] := L1[l1, l2, s2, r3]*W[l2, s1, s2, r2]
-    end
+    @tensoropt P[l1, s1, r2, r3] := L[l1, l2, l3]*conj(M[l3, s2, r3])*W[l2, s1, s2, r2]
     return P
 end
 

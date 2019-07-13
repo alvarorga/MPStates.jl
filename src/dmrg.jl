@@ -2,6 +2,8 @@
 # DMRG algorithms.
 #
 
+using TimerOutputs
+
 """
     minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1";
               max_iters::Int=500, tol::Float64=1e-6,
@@ -49,8 +51,10 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1"
             Es = do_sweep_2s!(psi, H, Le, Re, -1, m, cache, debug)
             Es = do_sweep_2s!(psi, H, Le, Re, +1, m, cache, debug)
         elseif algorithm == "DMRG3S"
-            Es, alpha = do_sweep_3s!(psi, H, Le, Re, -1, m, alpha, cache, debug)
-            Es, alpha = do_sweep_3s!(psi, H, Le, Re, +1, m, alpha, cache, debug)
+            to = TimerOutput()
+            Es, alpha = do_sweep_3s!(to, psi, H, Le, Re, -1, m, alpha, cache, debug)
+            Es, alpha = do_sweep_3s!(to, psi, H, Le, Re, +1, m, alpha, cache, debug)
+            println(to)
         end
 
         # Compute energy and variance of `psi` after sweeps.
@@ -253,18 +257,18 @@ Update the left and right environments after the local Hamiltonian is minimized.
 """
 function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                            m::Int, alpha::Float64, sense::Int) where T<:Number
+                            m::Int, alpha::Float64, sense::Int, to) where T<:Number
     if sense == +1
         # Subspace expansion.
         Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
-        P = prop_right_subexp(Le[i], H.W[i], Mi)
+        @timeit to "prop right subexp" P = prop_right_subexp(Le[i], H.W[i], Mi)
         P = reshape(P, (size(Le[i], 1)*psi.d, size(Re[i], 2)*size(Re[i], 3)))
         # Add subpsace expansion to local mimimum.
         Mi = reshape(Mi, (size(Le[i], 1)*psi.d, size(Re[i], 1)))
         MP = hcat(Mi, alpha*P)
 
         # Svd.
-        F = svd!(MP)
+        @timeit to "svd" F = svd!(MP)
         # Trim SVD to the desired bond dimension.
         new_m = min(bond_dimension_with_m(psi.L, i+1, m, psi.d), length(F.S))
         U = F.U[:, 1:new_m]
@@ -279,24 +283,24 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         Ai = reshape(U, (size(Le[i], 1), psi.d, new_m))
         psi.M[i] = Ai
         if i < psi.L
-            Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
+            @timeit to "prop right 3" Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
             # Absorb SV into psi.M[i+1].
             Ci = reshape(psi.M[i+1], (size(psi.M[i+1], 1), psi.d*size(psi.M[i+1], 3)))
             Ci = SV*Ci
             psi.M[i+1] = reshape(Ci, (new_m, psi.d, size(Re[i+1], 1)))
-            Re[i] = absorb_Re(Re[i], SV)
+            @timeit to "absorb Re" Re[i] = absorb_Re(Re[i], SV)
         end
     else
         # Subspace expansion.
         Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
-        P = prop_left_subexp(H.W[i], Mi, Re[i])
+        @timeit to "prop left subexp" P = prop_left_subexp(H.W[i], Mi, Re[i])
         P = reshape(P, (psi.d*size(Re[i], 1), size(Le[i], 2)*size(Le[i], 3)))
         # Add subpsace expansion to local mimimum.
         Mi = reshape(Mi, (size(Le[i], 1), psi.d*size(Re[i], 1)))
         MP = vcat(Mi, alpha*transpose(P))
 
         # Svd.
-        F = svd!(MP)
+        @timeit to "svd" F = svd!(MP)
         # Trim SVD to the desired bond dimension.
         new_m = min(bond_dimension_with_m(psi.L, i, m, psi.d), length(F.S))
         Vt = F.Vt[1:new_m, :]
@@ -311,12 +315,12 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         Bi = reshape(Vt, (new_m, psi.d, size(Re[i], 1)))
         psi.M[i] = Bi
         if i > 1
-            Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
+            @timeit to "prop left 3" Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
             # Absorb US into psi.M[i-1].
             Ci = reshape(psi.M[i-1], (size(psi.M[i-1], 1)*psi.d, size(psi.M[i-1], 3)))
             Ci = Ci*US
             psi.M[i-1] = reshape(Ci, (size(Le[i-1], 1), psi.d, new_m))
-            Le[i] = absorb_Le(Le[i], US)
+            @timeit to "absorb Le" Le[i] = absorb_Le(Le[i], US)
         end
     end
     return psi
@@ -331,7 +335,7 @@ end
 Do a sweep to locally minimize the energy of `psi` at 1 site per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
-function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
+function do_sweep_3s!(to, psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                       sense::Int, m::Int, alpha::Float64,
                       cache::Cache{T}, debug::Int=0) where T<:Number
@@ -347,15 +351,15 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L)
     for i in sweep_sites
         # Compute local minimum.
-        Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
+        @timeit to "build Hi" Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
         v0 = vec(deepcopy(psi.M[i]))
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
+        @timeit to "eigs Hi" array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
         E1 = real(array_E[1])
         delta_E1 = E1-E
         Mi = vec(Mi)
 
         # Update left and right environments.
-        update_lr_envs_3s!(psi, i, Mi, H, Le, Re, m, alpha, sense)
+        @timeit to "update envs" update_lr_envs_3s!(psi, i, Mi, H, Le, Re, m, alpha, sense, to)
 
         # Compute new energy and update alpha.
         if sense == +1
