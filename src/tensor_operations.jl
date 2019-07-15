@@ -317,6 +317,29 @@ function absorb_Re(Re::Array{T, 3}, M::Matrix{T}) where T<:Number
 end
 
 """
+    build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
+                            Re::Array{T, 3}) where T<:Number
+
+Build the local Hamiltonian with the left and right environments.
+
+ **     **
+ *   *   *     *
+Le* *W* *Re = Hi
+ *   *   *     *
+ **     **
+
+"""
+function build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
+                                 Re::Array{T, 3})  where T<:Number
+    @tensoropt Hi[l1, s1, r1, l3, s2, r3] := (
+        Le[l1, l2, l3]*W[l2, s1, s2, r2]*Re[r1, r2, r3]
+        )
+    Hi = reshape(Hi, (size(Le, 1)*size(W, 2)*size(Re, 1),
+                      size(Le, 3)*size(W, 3)*size(Re, 3)))
+    return Hi
+end
+
+"""
     build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4}, Re::Array{T, 3},
                             cache::Cache{T}) where T<:Number
 
