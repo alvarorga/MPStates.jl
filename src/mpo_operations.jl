@@ -18,12 +18,13 @@ end
 """
     expected2(Op::Mpo{T}, psi::Mps{T}) where T<:Number
 
-Compute expectation value of the squared operator < psi|Op^2|psi >.
+Compute norm of the operator acting on the state: || Op|psi > ||^2.
 """
 function expected2(Op::Mpo{T}, psi::Mps{T}) where T<:Number
     L = ones(T, 1, 1, 1, 1)
     for i=1:psi.L
-        L = prop_right4(L, psi.M[i], Op.W[i], Op.W[i], psi.M[i])
+        hOp = permutedims(conj(Op.W[i]), (1, 3, 2, 4))
+        L = prop_right4(L, psi.M[i], Op.W[i], hOp, psi.M[i])
     end
     return L[1, 1, 1, 1]
 end
