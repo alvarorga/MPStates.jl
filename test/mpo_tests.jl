@@ -9,8 +9,8 @@ end
 
 @testset "build general MPOs" begin
     L = 6
-    J = zeros(Float64, L, L)
-    V = similar(J)
+    J = zeros(L, L)
+    V = zeros(L, L)
 
     for i=1:L-1
         J[i, i+1] = i/10
@@ -40,8 +40,8 @@ end
 
     # Test a fermionic Mpo.
     L = 4
-    J = zeros(Float64, L, L)
-    V = similar(J)
+    J = zeros(L, L)
+    v = zeros(L, L)
 
     for i=1:L-2
         J[i, i+2] = i/5

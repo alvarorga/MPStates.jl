@@ -30,5 +30,9 @@ end
     # DMRG2.
     psi = MPStates.init_mps(T, L, "W")
     E, var = MPStates.minimize!(psi, H, max_D, "DMRG2", debug=0)
+
+    # DMRG3S.
+    psi = MPStates.init_mps(T, L, "W")
+    E, var = MPStates.minimize!(psi, H, max_D, "DMRG2", debug=0)
 end
 end # @testset "Integration tests: variational/DMRG algorithms"
