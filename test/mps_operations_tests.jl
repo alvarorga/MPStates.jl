@@ -2,34 +2,36 @@ using Test, MPStates
 
 @testset "Operations with Mps" begin
 @testset "measure occupation at one site" begin
+    n_op = zeros(2, 2)
+    n_op[2, 2] = 1.
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test m_occupation(rtest1, 1) ≈ 1/9
-    @test m_occupation(rtest1, 2) ≈ 4/9
-    @test m_occupation(rtest1, 3) ≈ 4/9
-    @test m_occupation(rtest1, 4) ≈ 1.
-    @test m_occupation(rtest1, 5) ≈ 0.64
-    @test m_occupation(rtest1, 6) ≈ 1.
+    @test measure(rtest1, n_op, 1) ≈ 1/9
+    @test measure(rtest1, n_op, 2) ≈ 4/9
+    @test measure(rtest1, n_op, 3) ≈ 4/9
+    @test measure(rtest1, n_op, 4) ≈ 1.
+    @test measure(rtest1, n_op, 5) ≈ 0.64
+    @test measure(rtest1, n_op, 6) ≈ 1.
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test m_occupation(ctest1, 1) ≈ 1/9
-    @test m_occupation(ctest1, 2) ≈ 4/9
-    @test m_occupation(ctest1, 3) ≈ 4/9
-    @test m_occupation(ctest1, 4) ≈ 1.
-    @test m_occupation(ctest1, 5) ≈ 0.64
-    @test m_occupation(ctest1, 6) ≈ 1.
+    @test measure(ctest1, n_op, 1) ≈ 1/9
+    @test measure(ctest1, n_op, 2) ≈ 4/9
+    @test measure(ctest1, n_op, 3) ≈ 4/9
+    @test measure(ctest1, n_op, 4) ≈ 1.
+    @test measure(ctest1, n_op, 5) ≈ 0.64
+    @test measure(ctest1, n_op, 6) ≈ 1.
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test m_occupation(rtest2, 1) ≈ 5/9
-    @test m_occupation(rtest2, 2) ≈ 5/9
-    @test m_occupation(rtest2, 3) ≈ 1.
-    @test m_occupation(rtest2, 4) ≈ 1.
-    @test m_occupation(rtest2, 5) ≈ 1.
-    @test m_occupation(rtest2, 6) ≈ 0.64
+    @test measure(rtest2, n_op, 1) ≈ 5/9
+    @test measure(rtest2, n_op, 2) ≈ 5/9
+    @test measure(rtest2, n_op, 3) ≈ 1.
+    @test measure(rtest2, n_op, 4) ≈ 1.
+    @test measure(rtest2, n_op, 5) ≈ 1.
+    @test measure(rtest2, n_op, 6) ≈ 0.64
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test m_occupation(ctest2, 1) ≈ 5/9
-    @test m_occupation(ctest2, 2) ≈ 5/9
-    @test m_occupation(ctest2, 3) ≈ 1.
-    @test m_occupation(ctest2, 4) ≈ 1.
-    @test m_occupation(ctest2, 5) ≈ 1.
-    @test m_occupation(ctest2, 6) ≈ 0.64
+    @test measure(ctest2, n_op, 1) ≈ 5/9
+    @test measure(ctest2, n_op, 2) ≈ 5/9
+    @test measure(ctest2, n_op, 3) ≈ 1.
+    @test measure(ctest2, n_op, 4) ≈ 1.
+    @test measure(ctest2, n_op, 5) ≈ 1.
+    @test measure(ctest2, n_op, 6) ≈ 0.64
 end
 
 @testset "measure fermionic correlations" begin
@@ -256,36 +258,38 @@ end
 end
 
 @testset "SVD truncation of MPS" begin
+    n_op = zeros(2, 2)
+    n_op[2, 2] = 1.
     rtest1 = MPStates.init_test_mps("rtest1")
     svd_truncate!(rtest1, 1)
-    @test m_occupation(rtest1, 1) ≈ 0.  atol=1e-15
-    @test (m_occupation(rtest1, 2)^2 + m_occupation(rtest1, 3)^2) ≈ 1.
-    @test m_occupation(rtest1, 4) ≈ 1.
-    @test m_occupation(rtest1, 5) ≈ 0.64
-    @test m_occupation(rtest1, 6) ≈ 1.
+    @test measure(rtest1, n_op, 1) ≈ 0.  atol=1e-15
+    @test (measure(rtest1, n_op, 2)^2 + measure(rtest1, n_op, 3)^2) ≈ 1.
+    @test measure(rtest1, n_op, 4) ≈ 1.
+    @test measure(rtest1, n_op, 5) ≈ 0.64
+    @test measure(rtest1, n_op, 6) ≈ 1.
     ctest1 = MPStates.init_test_mps("ctest1")
     svd_truncate!(ctest1, 1)
-    @test m_occupation(ctest1, 1) ≈ 0.  atol=1e-15
-    @test (m_occupation(ctest1, 2)^2 + m_occupation(ctest1, 3)^2) ≈ 1.
-    @test m_occupation(ctest1, 4) ≈ 1.
-    @test m_occupation(ctest1, 5) ≈ 0.64
-    @test m_occupation(ctest1, 6) ≈ 1.
+    @test measure(ctest1, n_op, 1) ≈ 0.  atol=1e-15
+    @test (measure(ctest1, n_op, 2)^2 + measure(ctest1, n_op, 3)^2) ≈ 1.
+    @test measure(ctest1, n_op, 4) ≈ 1.
+    @test measure(ctest1, n_op, 5) ≈ 0.64
+    @test measure(ctest1, n_op, 6) ≈ 1.
     rtest2 = MPStates.init_test_mps("rtest2")
     svd_truncate!(rtest2, 1)
-    @test m_occupation(rtest2, 1) ≈ (0.7882054380161092)^2
-    @test m_occupation(rtest2, 2) ≈ (0.7882054380161092)^2
-    @test m_occupation(rtest2, 3) ≈ 1.
-    @test m_occupation(rtest2, 4) ≈ 1.
-    @test m_occupation(rtest2, 5) ≈ 1.
-    @test m_occupation(rtest2, 6) ≈ 0.64
+    @test measure(rtest2, n_op, 1) ≈ (0.7882054380161092)^2
+    @test measure(rtest2, n_op, 2) ≈ (0.7882054380161092)^2
+    @test measure(rtest2, n_op, 3) ≈ 1.
+    @test measure(rtest2, n_op, 4) ≈ 1.
+    @test measure(rtest2, n_op, 5) ≈ 1.
+    @test measure(rtest2, n_op, 6) ≈ 0.64
     ctest2 = MPStates.init_test_mps("ctest2")
     svd_truncate!(ctest2, 1)
-    @test m_occupation(ctest2, 1) ≈ (0.7882054380161092)^2
-    @test m_occupation(ctest2, 2) ≈ (0.7882054380161092)^2
-    @test m_occupation(ctest2, 3) ≈ 1.
-    @test m_occupation(ctest2, 4) ≈ 1.
-    @test m_occupation(ctest2, 5) ≈ 1.
-    @test m_occupation(ctest2, 6) ≈ 0.64
+    @test measure(ctest2, n_op, 1) ≈ (0.7882054380161092)^2
+    @test measure(ctest2, n_op, 2) ≈ (0.7882054380161092)^2
+    @test measure(ctest2, n_op, 3) ≈ 1.
+    @test measure(ctest2, n_op, 4) ≈ 1.
+    @test measure(ctest2, n_op, 5) ≈ 1.
+    @test measure(ctest2, n_op, 6) ≈ 0.64
 end
 
 @testset "save and read Mps in hdf5 format" for T in [Float64, ComplexF64]

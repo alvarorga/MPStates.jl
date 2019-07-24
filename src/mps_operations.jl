@@ -3,23 +3,28 @@
 #
 
 """
-    m_occupation(psi::Mps{T}, i::Int, s::Int=2) where T<:Number
+    measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int) where T<:Number
 
-Measure occupation at site `i` of the local population in state `s`.
-For example, if the physical dimension of `psi` is 2, then measuring
-at `s=2` is the same as measuring the number of particles, while at
-`s=1` measures the number of holes.
+Compute expected value of the operator op_i in the state psi.
 """
-function m_occupation(psi::Mps{T}, i::Int, s::Int=2) where T<:Number
+function measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int) where T<:Number
+    # Convert op_i to have the same type as psi and reshape so that it can pass
+    # in prop_right3.
+    c_op_i = convert.(T, reshape(op_i, 1, size(op_i, 1), size(op_i, 2), 1))
+
     L = ones(T, 1, 1)
-    for j=1:psi.L
-        if i != j
-            L = prop_right2(L, psi.M[j], psi.M[j])
+    for s=1:psi.L
+        if s != i
+            L = prop_right2(L, psi.M[s], psi.M[s])
         else
-            L = prop_right2(L, psi.M[i][:, s:s, :], psi.M[i][:, s:s, :])
+            # Reshape L to a rank 3 tensor so that it can pass in prop_right3
+            # and then reshape it back to rank 2.
+            L3 = reshape(L, size(L, 1), 1, size(L, 2))
+            L3 = prop_right3(L3, psi.M[s], c_op_i, psi.M[s])
+            L = reshape(L3, size(L3, 1), size(L3, 3))
         end
     end
-    return real(L[1, 1])
+    return L[1, 1]
 end
 
 """

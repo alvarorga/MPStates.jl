@@ -16,26 +16,26 @@ function expected(Op::Mpo{T}, psi::Mps{T}) where T<:Number
 end
 
 """
-    expected2(Op::Mpo{T}, psi::Mps{T}) where T<:Number
+    norm_of_apply(Op::Mpo{T}, psi::Mps{T}) where T<:Number
 
 Compute norm of the operator acting on the state: || Op|psi > ||^2.
 """
-function expected2(Op::Mpo{T}, psi::Mps{T}) where T<:Number
+function norm_of_apply(Op::Mpo{T}, psi::Mps{T}) where T<:Number
     L = ones(T, 1, 1, 1, 1)
     for i=1:psi.L
         hOp = permutedims(conj(Op.W[i]), (1, 3, 2, 4))
         L = prop_right4(L, psi.M[i], Op.W[i], hOp, psi.M[i])
     end
-    return L[1, 1, 1, 1]
+    return real(L[1, 1, 1, 1])
 end
 
 """
     m_variance(Op::Mpo{T}, psi::Mps{T}) where T<:Number
 
-Measure variance: <psi|Op^2|psi> - <psi|Op|psi>^2.
+Measure variance: <psi|Op^2|psi> - |<psi|Op|psi>|^2, return a real number.
 """
 function m_variance(Op::Mpo{T}, psi::Mps{T}) where T<:Number
-    return expected2(Op, psi) - expected(Op, psi)^2
+    return norm_of_apply(Op, psi) - abs2(expected(Op, psi))
 end
 
 """

@@ -41,7 +41,7 @@ end
     # Test a fermionic Mpo.
     L = 4
     J = zeros(L, L)
-    v = zeros(L, L)
+    V = zeros(L, L)
 
     for i=1:L-2
         J[i, i+2] = i/5
