@@ -28,6 +28,15 @@ function measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int) where T<:N
 end
 
 """
+    measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int) where T<:Number
+
+Compute expected value of the operator (str_)op_i in the state psi.
+"""
+function measure(psi::Mps{T}, str_op_i::String, i::Int) where T<:Number
+    return measure(psi, str_to_op(str_op_i), i)
+end
+
+"""
     measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int,
             op_j::AbstractMatrix{<:Number}, j::Int;
             ferm_op::AbstractMatrix{<:Number}=Matrix{T}(I, psi.d, psi.d)
@@ -72,6 +81,25 @@ function measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int,
     end
 
     return L[1, 1]
+end
+
+"""
+    measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int,
+            op_j::AbstractMatrix{<:Number}, j::Int;
+            ferm_op::AbstractMatrix{<:Number}=Matrix{T}(I, psi.d, psi.d)
+            ) where T<:Number
+
+Compute expected value of the operator op_i*op_j in the state psi. An optional
+fermionic parity operator can be passed in ferm_op.
+"""
+function measure(psi::Mps{T}, op_i::String, i::Int, op_j::String, j::Int;
+                 ferm_op::String="none") where T<:Number
+    if ferm_op != "none"
+        return measure(psi, str_to_op(op_i), i, str_to_op(op_j), j,
+                       ferm_op=str_to_op(ferm_op))
+   else
+        return measure(psi, str_to_op(op_i), i, str_to_op(op_j), j)
+   end
 end
 
 """
