@@ -35,28 +35,31 @@ using Test, MPStates
 end
 
 @testset "measure fermionic correlations" begin
+    cdag = Float64[[0. 1.]; [0. 0.]]
+    c = Float64[[0. 0.]; [1. 0.]]
+    Z = Float64[[1. 0.]; [0. -1.]]
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test m_fermionic_correlation(rtest1, 1, 2) ≈ -2/9
-    @test m_fermionic_correlation(rtest1, 1, 4) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(rtest1, 3, 2) ≈ -4/9
-    @test m_fermionic_correlation(rtest1, 2, 6) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(rtest1, 6, 1) ≈ 0.  atol=1e-15
+    @test measure(rtest1, cdag, 1, c, 2, ferm_op=Z) ≈ -2/9
+    @test measure(rtest1, cdag, 1, c, 4, ferm_op=Z) ≈ 0. atol=1e-15
+    @test measure(rtest1, cdag, 3, c, 2, ferm_op=Z) ≈ -4/9
+    @test measure(rtest1, cdag, 2, c, 6, ferm_op=Z) ≈ 0. atol=1e-15
+    @test measure(rtest1, cdag, 6, c, 1, ferm_op=Z) ≈ 0.  atol=1e-15
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test m_fermionic_correlation(ctest1, 1, 2) ≈ complex(0., 2/9)
-    @test m_fermionic_correlation(ctest1, 1, 4) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(ctest1, 3, 2) ≈ complex(0., 4/9)
-    @test m_fermionic_correlation(ctest1, 2, 6) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(ctest1, 6, 1) ≈ 0.  atol=1e-15
+    @test measure(ctest1, cdag, 1, c, 2, ferm_op=Z) ≈ complex(0., 2/9)
+    @test measure(ctest1, cdag, 1, c, 4, ferm_op=Z) ≈ 0. atol=1e-15
+    @test measure(ctest1, cdag, 3, c, 2, ferm_op=Z) ≈ complex(0., 4/9)
+    @test measure(ctest1, cdag, 2, c, 6, ferm_op=Z) ≈ 0. atol=1e-15
+    @test measure(ctest1, cdag, 6, c, 1, ferm_op=Z) ≈ 0.  atol=1e-15
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test m_fermionic_correlation(rtest2, 1, 2) ≈ -4/9
-    @test m_fermionic_correlation(rtest2, 1, 4) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(rtest2, 2, 6) ≈ 2/9*0.6*0.8
-    @test m_fermionic_correlation(rtest2, 6, 1) ≈ 2/9*0.6*0.8
+    @test measure(rtest2, cdag, 1, c, 2, ferm_op=Z) ≈ -4/9
+    @test measure(rtest2, cdag, 1, c, 4, ferm_op=Z) ≈ 0. atol=1e-15
+    @test measure(rtest2, cdag, 2, c, 6, ferm_op=Z) ≈ 2/9*0.6*0.8
+    @test measure(rtest2, cdag, 6, c, 1, ferm_op=Z) ≈ 2/9*0.6*0.8
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test m_fermionic_correlation(ctest2, 1, 2) ≈ complex(0., -4/9)
-    @test m_fermionic_correlation(ctest2, 1, 4) ≈ 0. atol=1e-15
-    @test m_fermionic_correlation(ctest2, 2, 6) ≈ 2/9*0.6*0.8
-    @test m_fermionic_correlation(ctest2, 6, 1) ≈ complex(0., -2/9*0.6*0.8)
+    @test measure(ctest2, cdag, 1, c, 2, ferm_op=Z) ≈ complex(0., -4/9)
+    @test measure(ctest2, cdag, 1, c, 4, ferm_op=Z) ≈ 0. atol=1e-15
+    @test measure(ctest2, cdag, 2, c, 6, ferm_op=Z) ≈ 2/9*0.6*0.8
+    @test measure(ctest2, cdag, 6, c, 1, ferm_op=Z) ≈ complex(0., -2/9*0.6*0.8)
 end
 
 @testset "measure correlations" begin
