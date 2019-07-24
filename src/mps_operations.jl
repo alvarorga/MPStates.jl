@@ -28,21 +28,44 @@ function measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int) where T<:N
 end
 
 """
+    measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int,
+            op_j::AbstractMatrix{<:Number}, j::Int) where T<:Number
+
+Compute expected value of the operator op_i*op_j in the state psi.
+"""
+function measure(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int,
+                 op_j::AbstractMatrix{<:Number}, j::Int) where T<:Number
+    # Convert op_i and op_j to have the same type as psi and reshape so that
+    # they can pass in prop_right3.
+    c_op_i = convert.(T, reshape(op_i, 1, size(op_i, 1), size(op_i, 2), 1))
+    c_op_j = convert.(T, reshape(op_j, 1, size(op_j, 1), size(op_j, 2), 1))
+
+    L = ones(T, 1, 1)
+    for s=1:psi.L
+        if s == i
+            # Reshape L to a rank 3 tensor so that it can pass in prop_right3
+            # and then reshape it back to rank 2.
+            L3 = reshape(L, size(L, 1), 1, size(L, 2))
+            L3 = prop_right3(L3, psi.M[s], c_op_i, psi.M[s])
+            L = reshape(L3, size(L3, 1), size(L3, 3))
+        elseif s == j
+            L3 = reshape(L, size(L, 1), 1, size(L, 2))
+            L3 = prop_right3(L3, psi.M[s], c_op_j, psi.M[s])
+            L = reshape(L3, size(L3, 1), size(L3, 3))
+        else
+            L = prop_right2(L, psi.M[s], psi.M[s])
+        end
+    end
+    return L[1, 1]
+end
+
+"""
     m_fermionic_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
 
 Measure the correlation <c^dagger_i c_j>, with `psi` a fermionic state.
 """
 function m_fermionic_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
     return m_generic_correlation(psi, i, j, true)
-end
-
-"""
-    m_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
-
-Measure correlation <c^dagger_i c_j>, with `psi` a non fermionic state.
-"""
-function m_correlation(psi::Mps{T}, i::Int, j::Int) where T<:Number
-    return m_generic_correlation(psi, i, j, false)
 end
 
 """
@@ -80,33 +103,6 @@ function m_generic_correlation(psi::Mps{T}, i::Int, j::Int,
         end
     end
     return L[1, 1, 1]
-end
-
-"""
-    m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
-
-Measure the two point occupation <n_i n_j>.
-"""
-function m_2occupations(psi::Mps{T}, i::Int, j::Int) where T<:Number
-    psi.d == 2 || throw("Physical dimension of Mps is not 2.")
-    i != j || throw("Site i must be different than j.")
-
-    # Operators n, and Id.
-    n = zeros(T, 1, 2, 2, 1)
-    n[1, 2, 2, 1] = 1.
-    Id = zeros(T, 1, 2, 2, 1)
-    Id[1, :, :, 1] = Matrix{T}(I, 2, 2)
-
-    # Make tensor contraction.
-    L = ones(T, 1, 1, 1)
-    for k=1:psi.L
-        if k == i || k == j
-            L = prop_right3(L, psi.M[k], n, psi.M[k])
-        else
-            L = prop_right3(L, psi.M[k], Id, psi.M[k])
-        end
-    end
-    return real(L[1, 1, 1])
 end
 
 """

@@ -60,53 +60,59 @@ end
 end
 
 @testset "measure correlations" begin
+    # b^dagger and b operator.
+    bdag_op = Float64[[0. 1.]; [0. 0.]]
+    b_op = Float64[[0. 0.]; [1. 0.]]
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test m_correlation(rtest1, 1, 2) ≈ -2/9
-    @test m_correlation(rtest1, 1, 4) ≈ 0. atol=1e-15
-    @test m_correlation(rtest1, 3, 2) ≈ -4/9
-    @test m_correlation(rtest1, 2, 6) ≈ 0. atol=1e-15
-    @test m_correlation(rtest1, 6, 1) ≈ 0.  atol=1e-15
+    @test measure(rtest1, bdag_op, 1, b_op, 2) ≈ -2/9
+    @test measure(rtest1, bdag_op, 1, b_op, 4) ≈ 0. atol=1e-15
+    @test measure(rtest1, bdag_op, 3, b_op, 2) ≈ -4/9
+    @test measure(rtest1, bdag_op, 2, b_op, 6) ≈ 0. atol=1e-15
+    @test measure(rtest1, bdag_op, 6, b_op, 1) ≈ 0.  atol=1e-15
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test m_correlation(ctest1, 1, 2) ≈ complex(0., 2/9)
-    @test m_correlation(ctest1, 1, 4) ≈ 0. atol=1e-15
-    @test m_correlation(ctest1, 3, 2) ≈ complex(0., 4/9)
-    @test m_correlation(ctest1, 2, 6) ≈ 0. atol=1e-15
-    @test m_correlation(ctest1, 6, 1) ≈ 0.  atol=1e-15
+    @test measure(ctest1, bdag_op, 1, b_op, 2) ≈ complex(0., 2/9)
+    @test measure(ctest1, bdag_op, 1, b_op, 4) ≈ 0. atol=1e-15
+    @test measure(ctest1, bdag_op, 3, b_op, 2) ≈ complex(0., 4/9)
+    @test measure(ctest1, bdag_op, 2, b_op, 6) ≈ 0. atol=1e-15
+    @test measure(ctest1, bdag_op, 6, b_op, 1) ≈ 0.  atol=1e-15
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test m_correlation(rtest2, 1, 2) ≈ -4/9
-    @test m_correlation(rtest2, 1, 4) ≈ 0. atol=1e-15
-    @test m_correlation(rtest2, 2, 6) ≈ -2/9*0.6*0.8
-    @test m_correlation(rtest2, 6, 1) ≈ 2/9*0.6*0.8
+    @test measure(rtest2, bdag_op, 1, b_op, 2) ≈ -4/9
+    @test measure(rtest2, bdag_op, 1, b_op, 4) ≈ 0. atol=1e-15
+    @test measure(rtest2, bdag_op, 2, b_op, 6) ≈ -2/9*0.6*0.8
+    @test measure(rtest2, bdag_op, 6, b_op, 1) ≈ 2/9*0.6*0.8
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test m_correlation(ctest2, 1, 2) ≈ complex(0., -4/9)
-    @test m_correlation(ctest2, 1, 4) ≈ 0. atol=1e-15
-    @test m_correlation(ctest2, 2, 6) ≈ -2/9*0.6*0.8
-    @test m_correlation(ctest2, 6, 1) ≈ complex(0., -2/9*0.6*0.8)
+    @test measure(ctest2, bdag_op, 1, b_op, 2) ≈ complex(0., -4/9)
+    @test measure(ctest2, bdag_op, 1, b_op, 4) ≈ 0. atol=1e-15
+    @test measure(ctest2, bdag_op, 2, b_op, 6) ≈ -2/9*0.6*0.8
+    @test measure(ctest2, bdag_op, 6, b_op, 1) ≈ complex(0., -2/9*0.6*0.8)
 end
 
 @testset "measure 2 point occupations" begin
+    n_op = zeros(2, 2)
+    n_op[2, 2] = 1.
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test m_2occupations(rtest1, 1, 2) ≈ 0. atol=1e-15
-    @test m_2occupations(rtest1, 1, 4) ≈ 1/9
-    @test m_2occupations(rtest1, 3, 2) ≈ 0. atol=1e-15
-    @test m_2occupations(rtest1, 2, 5) ≈ 4/9*0.64
-    @test m_2occupations(rtest1, 6, 1) ≈ 1/9
+    @test measure(rtest1, n_op, 1, n_op, 2) ≈ 0. atol=1e-15
+    @test measure(rtest1, n_op, 1, n_op, 4) ≈ 1/9
+    @test measure(rtest1, n_op, 3, n_op, 2) ≈ 0. atol=1e-15
+    @test measure(rtest1, n_op, 2, n_op, 5) ≈ 4/9*0.64
+    @test measure(rtest1, n_op, 6, n_op, 1) ≈ 1/9
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test m_2occupations(ctest1, 1, 2) ≈ 0. atol=1e-15
-    @test m_2occupations(ctest1, 1, 4) ≈ 1/9
-    @test m_2occupations(ctest1, 3, 2) ≈ 0. atol=1e-15
-    @test m_2occupations(ctest1, 2, 5) ≈ 4/9*0.64
-    @test m_2occupations(ctest1, 6, 1) ≈ 1/9
+    @test measure(ctest1, n_op, 1, n_op, 2) ≈ 0. atol=1e-15
+    @test measure(ctest1, n_op, 1, n_op, 4) ≈ 1/9
+    @test measure(ctest1, n_op, 3, n_op, 2) ≈ 0. atol=1e-15
+    @test measure(ctest1, n_op, 2, n_op, 5) ≈ 4/9*0.64
+    @test measure(ctest1, n_op, 6, n_op, 1) ≈ 1/9
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test m_2occupations(rtest2, 1, 2) ≈ 1/9
-    @test m_2occupations(rtest2, 1, 4) ≈ 5/9
-    @test m_2occupations(rtest2, 2, 6) ≈ 5/9*0.64
-    @test m_2occupations(rtest2, 6, 1) ≈ 5/9*0.64
+    @test measure(rtest2, n_op, 1, n_op, 2) ≈ 1/9
+    @test measure(rtest2, n_op, 1, n_op, 4) ≈ 5/9
+    @test measure(rtest2, n_op, 2, n_op, 6) ≈ 5/9*0.64
+    @test measure(rtest2, n_op, 6, n_op, 1) ≈ 5/9*0.64
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test m_2occupations(ctest2, 1, 2) ≈ 1/9
-    @test m_2occupations(ctest2, 1, 4) ≈ 5/9
-    @test m_2occupations(ctest2, 2, 6) ≈ 5/9*0.64
-    @test m_2occupations(ctest2, 6, 1) ≈ 5/9*0.64
+    @test measure(ctest2, n_op, 1, n_op, 2) ≈ 1/9
+    @test measure(ctest2, n_op, 1, n_op, 4) ≈ 5/9
+    @test measure(ctest2, n_op, 2, n_op, 6) ≈ 5/9*0.64
+    @test measure(ctest2, n_op, 6, n_op, 1) ≈ 5/9*0.64
+
 end
 
 @testset "contraction of two MPS" begin

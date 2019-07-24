@@ -1,8 +1,8 @@
 module MPStates
 
 export Mps, init_mps, show_bond_dims
-export measure, m_fermionic_correlation, m_correlation,
-    m_2occupations, contract, norm, ent_entropy,
+export measure, m_fermionic_correlation,
+    contract, norm, ent_entropy,
     enlarge_bond_dimension!, svd_truncate!, simplify!,
     save_mps, read_mps
 export Mpo, init_hubbard_mpo, init_mpo
