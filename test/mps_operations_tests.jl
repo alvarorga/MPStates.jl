@@ -3,108 +3,108 @@ using Test, MPStates
 @testset "Operations with Mps" begin
 @testset "measure occupation at one site" begin
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test measure(rtest1, "n", 1) ≈ 1/9
-    @test measure(rtest1, "n", 2) ≈ 4/9
-    @test measure(rtest1, "n", 3) ≈ 4/9
-    @test measure(rtest1, "n", 4) ≈ 1.
-    @test measure(rtest1, "n", 5) ≈ 0.64
-    @test measure(rtest1, "n", 6) ≈ 1.
+    @test expected(rtest1, "n", 1) ≈ 1/9
+    @test expected(rtest1, "n", 2) ≈ 4/9
+    @test expected(rtest1, "n", 3) ≈ 4/9
+    @test expected(rtest1, "n", 4) ≈ 1.
+    @test expected(rtest1, "n", 5) ≈ 0.64
+    @test expected(rtest1, "n", 6) ≈ 1.
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test measure(ctest1, "n", 1) ≈ 1/9
-    @test measure(ctest1, "n", 2) ≈ 4/9
-    @test measure(ctest1, "n", 3) ≈ 4/9
-    @test measure(ctest1, "n", 4) ≈ 1.
-    @test measure(ctest1, "n", 5) ≈ 0.64
-    @test measure(ctest1, "n", 6) ≈ 1.
+    @test expected(ctest1, "n", 1) ≈ 1/9
+    @test expected(ctest1, "n", 2) ≈ 4/9
+    @test expected(ctest1, "n", 3) ≈ 4/9
+    @test expected(ctest1, "n", 4) ≈ 1.
+    @test expected(ctest1, "n", 5) ≈ 0.64
+    @test expected(ctest1, "n", 6) ≈ 1.
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test measure(rtest2, "n", 1) ≈ 5/9
-    @test measure(rtest2, "n", 2) ≈ 5/9
-    @test measure(rtest2, "n", 3) ≈ 1.
-    @test measure(rtest2, "n", 4) ≈ 1.
-    @test measure(rtest2, "n", 5) ≈ 1.
-    @test measure(rtest2, "n", 6) ≈ 0.64
+    @test expected(rtest2, "n", 1) ≈ 5/9
+    @test expected(rtest2, "n", 2) ≈ 5/9
+    @test expected(rtest2, "n", 3) ≈ 1.
+    @test expected(rtest2, "n", 4) ≈ 1.
+    @test expected(rtest2, "n", 5) ≈ 1.
+    @test expected(rtest2, "n", 6) ≈ 0.64
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test measure(ctest2, "n", 1) ≈ 5/9
-    @test measure(ctest2, "n", 2) ≈ 5/9
-    @test measure(ctest2, "n", 3) ≈ 1.
-    @test measure(ctest2, "n", 4) ≈ 1.
-    @test measure(ctest2, "n", 5) ≈ 1.
-    @test measure(ctest2, "n", 6) ≈ 0.64
+    @test expected(ctest2, "n", 1) ≈ 5/9
+    @test expected(ctest2, "n", 2) ≈ 5/9
+    @test expected(ctest2, "n", 3) ≈ 1.
+    @test expected(ctest2, "n", 4) ≈ 1.
+    @test expected(ctest2, "n", 5) ≈ 1.
+    @test expected(ctest2, "n", 6) ≈ 0.64
 end
 
 @testset "measure fermionic correlations" begin
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test measure(rtest1, "c+", 1, "c", 2, ferm_op="Z") ≈ -2/9
-    @test measure(rtest1, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
-    @test measure(rtest1, "c+", 3, "c", 2, ferm_op="Z") ≈ -4/9
-    @test measure(rtest1, "c+", 2, "c", 6, ferm_op="Z") ≈ 0. atol=1e-15
-    @test measure(rtest1, "c+", 6, "c", 1, ferm_op="Z") ≈ 0.  atol=1e-15
+    @test expected(rtest1, "c+", 1, "c", 2, ferm_op="Z") ≈ -2/9
+    @test expected(rtest1, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
+    @test expected(rtest1, "c+", 3, "c", 2, ferm_op="Z") ≈ -4/9
+    @test expected(rtest1, "c+", 2, "c", 6, ferm_op="Z") ≈ 0. atol=1e-15
+    @test expected(rtest1, "c+", 6, "c", 1, ferm_op="Z") ≈ 0.  atol=1e-15
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test measure(ctest1, "c+", 1, "c", 2, ferm_op="Z") ≈ complex(0., 2/9)
-    @test measure(ctest1, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
-    @test measure(ctest1, "c+", 3, "c", 2, ferm_op="Z") ≈ complex(0., 4/9)
-    @test measure(ctest1, "c+", 2, "c", 6, ferm_op="Z") ≈ 0. atol=1e-15
-    @test measure(ctest1, "c+", 6, "c", 1, ferm_op="Z") ≈ 0.  atol=1e-15
+    @test expected(ctest1, "c+", 1, "c", 2, ferm_op="Z") ≈ complex(0., 2/9)
+    @test expected(ctest1, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
+    @test expected(ctest1, "c+", 3, "c", 2, ferm_op="Z") ≈ complex(0., 4/9)
+    @test expected(ctest1, "c+", 2, "c", 6, ferm_op="Z") ≈ 0. atol=1e-15
+    @test expected(ctest1, "c+", 6, "c", 1, ferm_op="Z") ≈ 0.  atol=1e-15
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test measure(rtest2, "c+", 1, "c", 2, ferm_op="Z") ≈ -4/9
-    @test measure(rtest2, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
-    @test measure(rtest2, "c+", 2, "c", 6, ferm_op="Z") ≈ 2/9*0.6*0.8
-    @test measure(rtest2, "c+", 6, "c", 1, ferm_op="Z") ≈ 2/9*0.6*0.8
+    @test expected(rtest2, "c+", 1, "c", 2, ferm_op="Z") ≈ -4/9
+    @test expected(rtest2, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
+    @test expected(rtest2, "c+", 2, "c", 6, ferm_op="Z") ≈ 2/9*0.6*0.8
+    @test expected(rtest2, "c+", 6, "c", 1, ferm_op="Z") ≈ 2/9*0.6*0.8
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test measure(ctest2, "c+", 1, "c", 2, ferm_op="Z") ≈ complex(0., -4/9)
-    @test measure(ctest2, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
-    @test measure(ctest2, "c+", 2, "c", 6, ferm_op="Z") ≈ 2/9*0.6*0.8
-    @test measure(ctest2, "c+", 6, "c", 1, ferm_op="Z") ≈ complex(0., -2/9*0.6*0.8)
+    @test expected(ctest2, "c+", 1, "c", 2, ferm_op="Z") ≈ complex(0., -4/9)
+    @test expected(ctest2, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
+    @test expected(ctest2, "c+", 2, "c", 6, ferm_op="Z") ≈ 2/9*0.6*0.8
+    @test expected(ctest2, "c+", 6, "c", 1, ferm_op="Z") ≈ complex(0., -2/9*0.6*0.8)
 end
 
 @testset "measure correlations" begin
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test measure(rtest1, "b+", 1, "b", 2) ≈ -2/9
-    @test measure(rtest1, "b+", 1, "b", 4) ≈ 0. atol=1e-15
-    @test measure(rtest1, "b+", 3, "b", 2) ≈ -4/9
-    @test measure(rtest1, "b+", 2, "b", 6) ≈ 0. atol=1e-15
-    @test measure(rtest1, "b+", 6, "b", 1) ≈ 0.  atol=1e-15
+    @test expected(rtest1, "b+", 1, "b", 2) ≈ -2/9
+    @test expected(rtest1, "b+", 1, "b", 4) ≈ 0. atol=1e-15
+    @test expected(rtest1, "b+", 3, "b", 2) ≈ -4/9
+    @test expected(rtest1, "b+", 2, "b", 6) ≈ 0. atol=1e-15
+    @test expected(rtest1, "b+", 6, "b", 1) ≈ 0.  atol=1e-15
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test measure(ctest1, "b+", 1, "b", 2) ≈ complex(0., 2/9)
-    @test measure(ctest1, "b+", 1, "b", 4) ≈ 0. atol=1e-15
-    @test measure(ctest1, "b+", 3, "b", 2) ≈ complex(0., 4/9)
-    @test measure(ctest1, "b+", 2, "b", 6) ≈ 0. atol=1e-15
-    @test measure(ctest1, "b+", 6, "b", 1) ≈ 0.  atol=1e-15
+    @test expected(ctest1, "b+", 1, "b", 2) ≈ complex(0., 2/9)
+    @test expected(ctest1, "b+", 1, "b", 4) ≈ 0. atol=1e-15
+    @test expected(ctest1, "b+", 3, "b", 2) ≈ complex(0., 4/9)
+    @test expected(ctest1, "b+", 2, "b", 6) ≈ 0. atol=1e-15
+    @test expected(ctest1, "b+", 6, "b", 1) ≈ 0.  atol=1e-15
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test measure(rtest2, "b+", 1, "b", 2) ≈ -4/9
-    @test measure(rtest2, "b+", 1, "b", 4) ≈ 0. atol=1e-15
-    @test measure(rtest2, "b+", 2, "b", 6) ≈ -2/9*0.6*0.8
-    @test measure(rtest2, "b+", 6, "b", 1) ≈ 2/9*0.6*0.8
+    @test expected(rtest2, "b+", 1, "b", 2) ≈ -4/9
+    @test expected(rtest2, "b+", 1, "b", 4) ≈ 0. atol=1e-15
+    @test expected(rtest2, "b+", 2, "b", 6) ≈ -2/9*0.6*0.8
+    @test expected(rtest2, "b+", 6, "b", 1) ≈ 2/9*0.6*0.8
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test measure(ctest2, "b+", 1, "b", 2) ≈ complex(0., -4/9)
-    @test measure(ctest2, "b+", 1, "b", 4) ≈ 0. atol=1e-15
-    @test measure(ctest2, "b+", 2, "b", 6) ≈ -2/9*0.6*0.8
-    @test measure(ctest2, "b+", 6, "b", 1) ≈ complex(0., -2/9*0.6*0.8)
+    @test expected(ctest2, "b+", 1, "b", 2) ≈ complex(0., -4/9)
+    @test expected(ctest2, "b+", 1, "b", 4) ≈ 0. atol=1e-15
+    @test expected(ctest2, "b+", 2, "b", 6) ≈ -2/9*0.6*0.8
+    @test expected(ctest2, "b+", 6, "b", 1) ≈ complex(0., -2/9*0.6*0.8)
 end
 
 @testset "measure 2 point occupations" begin
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test measure(rtest1, "n", 1, "n", 2) ≈ 0. atol=1e-15
-    @test measure(rtest1, "n", 1, "n", 4) ≈ 1/9
-    @test measure(rtest1, "n", 3, "n", 2) ≈ 0. atol=1e-15
-    @test measure(rtest1, "n", 2, "n", 5) ≈ 4/9*0.64
-    @test measure(rtest1, "n", 6, "n", 1) ≈ 1/9
+    @test expected(rtest1, "n", 1, "n", 2) ≈ 0. atol=1e-15
+    @test expected(rtest1, "n", 1, "n", 4) ≈ 1/9
+    @test expected(rtest1, "n", 3, "n", 2) ≈ 0. atol=1e-15
+    @test expected(rtest1, "n", 2, "n", 5) ≈ 4/9*0.64
+    @test expected(rtest1, "n", 6, "n", 1) ≈ 1/9
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test measure(ctest1, "n", 1, "n", 2) ≈ 0. atol=1e-15
-    @test measure(ctest1, "n", 1, "n", 4) ≈ 1/9
-    @test measure(ctest1, "n", 3, "n", 2) ≈ 0. atol=1e-15
-    @test measure(ctest1, "n", 2, "n", 5) ≈ 4/9*0.64
-    @test measure(ctest1, "n", 6, "n", 1) ≈ 1/9
+    @test expected(ctest1, "n", 1, "n", 2) ≈ 0. atol=1e-15
+    @test expected(ctest1, "n", 1, "n", 4) ≈ 1/9
+    @test expected(ctest1, "n", 3, "n", 2) ≈ 0. atol=1e-15
+    @test expected(ctest1, "n", 2, "n", 5) ≈ 4/9*0.64
+    @test expected(ctest1, "n", 6, "n", 1) ≈ 1/9
     rtest2 = MPStates.init_test_mps("rtest2")
-    @test measure(rtest2, "n", 1, "n", 2) ≈ 1/9
-    @test measure(rtest2, "n", 1, "n", 4) ≈ 5/9
-    @test measure(rtest2, "n", 2, "n", 6) ≈ 5/9*0.64
-    @test measure(rtest2, "n", 6, "n", 1) ≈ 5/9*0.64
+    @test expected(rtest2, "n", 1, "n", 2) ≈ 1/9
+    @test expected(rtest2, "n", 1, "n", 4) ≈ 5/9
+    @test expected(rtest2, "n", 2, "n", 6) ≈ 5/9*0.64
+    @test expected(rtest2, "n", 6, "n", 1) ≈ 5/9*0.64
     ctest2 = MPStates.init_test_mps("ctest2")
-    @test measure(ctest2, "n", 1, "n", 2) ≈ 1/9
-    @test measure(ctest2, "n", 1, "n", 4) ≈ 5/9
-    @test measure(ctest2, "n", 2, "n", 6) ≈ 5/9*0.64
-    @test measure(ctest2, "n", 6, "n", 1) ≈ 5/9*0.64
+    @test expected(ctest2, "n", 1, "n", 2) ≈ 1/9
+    @test expected(ctest2, "n", 1, "n", 4) ≈ 5/9
+    @test expected(ctest2, "n", 2, "n", 6) ≈ 5/9*0.64
+    @test expected(ctest2, "n", 6, "n", 1) ≈ 5/9*0.64
 
 end
 
@@ -259,34 +259,34 @@ end
 @testset "SVD truncation of MPS" begin
     rtest1 = MPStates.init_test_mps("rtest1")
     svd_truncate!(rtest1, 1)
-    @test measure(rtest1, "n", 1) ≈ 0.  atol=1e-15
-    @test (measure(rtest1, "n", 2)^2 + measure(rtest1, "n", 3)^2) ≈ 1.
-    @test measure(rtest1, "n", 4) ≈ 1.
-    @test measure(rtest1, "n", 5) ≈ 0.64
-    @test measure(rtest1, "n", 6) ≈ 1.
+    @test expected(rtest1, "n", 1) ≈ 0.  atol=1e-15
+    @test (expected(rtest1, "n", 2)^2 + expected(rtest1, "n", 3)^2) ≈ 1.
+    @test expected(rtest1, "n", 4) ≈ 1.
+    @test expected(rtest1, "n", 5) ≈ 0.64
+    @test expected(rtest1, "n", 6) ≈ 1.
     ctest1 = MPStates.init_test_mps("ctest1")
     svd_truncate!(ctest1, 1)
-    @test measure(ctest1, "n", 1) ≈ 0.  atol=1e-15
-    @test (measure(ctest1, "n", 2)^2 + measure(ctest1, "n", 3)^2) ≈ 1.
-    @test measure(ctest1, "n", 4) ≈ 1.
-    @test measure(ctest1, "n", 5) ≈ 0.64
-    @test measure(ctest1, "n", 6) ≈ 1.
+    @test expected(ctest1, "n", 1) ≈ 0.  atol=1e-15
+    @test (expected(ctest1, "n", 2)^2 + expected(ctest1, "n", 3)^2) ≈ 1.
+    @test expected(ctest1, "n", 4) ≈ 1.
+    @test expected(ctest1, "n", 5) ≈ 0.64
+    @test expected(ctest1, "n", 6) ≈ 1.
     rtest2 = MPStates.init_test_mps("rtest2")
     svd_truncate!(rtest2, 1)
-    @test measure(rtest2, "n", 1) ≈ (0.7882054380161092)^2
-    @test measure(rtest2, "n", 2) ≈ (0.7882054380161092)^2
-    @test measure(rtest2, "n", 3) ≈ 1.
-    @test measure(rtest2, "n", 4) ≈ 1.
-    @test measure(rtest2, "n", 5) ≈ 1.
-    @test measure(rtest2, "n", 6) ≈ 0.64
+    @test expected(rtest2, "n", 1) ≈ (0.7882054380161092)^2
+    @test expected(rtest2, "n", 2) ≈ (0.7882054380161092)^2
+    @test expected(rtest2, "n", 3) ≈ 1.
+    @test expected(rtest2, "n", 4) ≈ 1.
+    @test expected(rtest2, "n", 5) ≈ 1.
+    @test expected(rtest2, "n", 6) ≈ 0.64
     ctest2 = MPStates.init_test_mps("ctest2")
     svd_truncate!(ctest2, 1)
-    @test measure(ctest2, "n", 1) ≈ (0.7882054380161092)^2
-    @test measure(ctest2, "n", 2) ≈ (0.7882054380161092)^2
-    @test measure(ctest2, "n", 3) ≈ 1.
-    @test measure(ctest2, "n", 4) ≈ 1.
-    @test measure(ctest2, "n", 5) ≈ 1.
-    @test measure(ctest2, "n", 6) ≈ 0.64
+    @test expected(ctest2, "n", 1) ≈ (0.7882054380161092)^2
+    @test expected(ctest2, "n", 2) ≈ (0.7882054380161092)^2
+    @test expected(ctest2, "n", 3) ≈ 1.
+    @test expected(ctest2, "n", 4) ≈ 1.
+    @test expected(ctest2, "n", 5) ≈ 1.
+    @test expected(ctest2, "n", 6) ≈ 0.64
 end
 
 @testset "save and read Mps in hdf5 format" for T in [Float64, ComplexF64]

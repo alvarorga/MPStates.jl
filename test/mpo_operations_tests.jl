@@ -54,22 +54,22 @@ end
     apply!(Op, rtest1)
     MPStates.make_left_canonical!(rtest1, false)
     @test norm(rtest1) ≈ 4/9
-    @test measure(rtest1, "n", 1) ≈ 4/9
-    @test measure(rtest1, "n", 2) ≈ 0. atol=1e-15
-    @test measure(rtest1, "n", 3) ≈ 0. atol=1e-15
-    @test measure(rtest1, "n", 4) ≈ 4/9
-    @test measure(rtest1, "n", 5) ≈ 4/9*0.64
-    @test measure(rtest1, "n", 6) ≈ 4/9
+    @test expected(rtest1, "n", 1) ≈ 4/9
+    @test expected(rtest1, "n", 2) ≈ 0. atol=1e-15
+    @test expected(rtest1, "n", 3) ≈ 0. atol=1e-15
+    @test expected(rtest1, "n", 4) ≈ 4/9
+    @test expected(rtest1, "n", 5) ≈ 4/9*0.64
+    @test expected(rtest1, "n", 6) ≈ 4/9
     ctest2 = MPStates.init_test_mps("ctest2")
     Op = init_mpo(L, complex.(J), complex.(V), true)
     apply!(Op, ctest2)
     MPStates.make_left_canonical!(ctest2, false)
     @test norm(ctest2) ≈ 4/9
-    @test measure(ctest2, "n", 1) ≈ 4/9
-    @test measure(ctest2, "n", 2) ≈ 0. atol=1e-15
-    @test measure(ctest2, "n", 3) ≈ 4/9
-    @test measure(ctest2, "n", 4) ≈ 4/9
-    @test measure(ctest2, "n", 5) ≈ 4/9
-    @test measure(ctest2, "n", 6) ≈ 4/9*0.64
+    @test expected(ctest2, "n", 1) ≈ 4/9
+    @test expected(ctest2, "n", 2) ≈ 0. atol=1e-15
+    @test expected(ctest2, "n", 3) ≈ 4/9
+    @test expected(ctest2, "n", 4) ≈ 4/9
+    @test expected(ctest2, "n", 5) ≈ 4/9
+    @test expected(ctest2, "n", 6) ≈ 4/9*0.64
 end
 end # @testset "Operations with Mpo and Mps"
