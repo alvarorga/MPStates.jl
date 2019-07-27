@@ -49,6 +49,11 @@ function expected(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int,
                   op_j::AbstractMatrix{<:Number}, j::Int;
                   ferm_op::AbstractMatrix{<:Number}=Matrix{T}(I, psi.d, psi.d)
                   ) where T<:Number
+    # Multiply operators acting on same site and call single operator method.
+    if i == j
+        return expected(psi, op_j*op_i, i)
+    end
+
     # Convert op_i, op_j, and ferm_op to have the same type as psi and reshape
     # to a rank 4 tensor so that they can pass in prop_right3.
     c_op_i = convert.(T, reshape(op_i, 1, size(op_i, 1), size(op_i, 2), 1))

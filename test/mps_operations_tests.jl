@@ -39,17 +39,26 @@ end
     @test expected(rtest1, "c+", 3, "c", 2, ferm_op="Z") ≈ -4/9
     @test expected(rtest1, "c+", 2, "c", 6, ferm_op="Z") ≈ 0. atol=1e-15
     @test expected(rtest1, "c+", 6, "c", 1, ferm_op="Z") ≈ 0.  atol=1e-15
+    # On-site operations.
+    @test expected(rtest1, "c+", 1, "c+", 1) ≈ 0.  atol=1e-15
+    @test expected(rtest1, "c+", 1, "c", 1) ≈ 1/9
+    @test expected(rtest1, "c+", 3, "c", 3) ≈ 4/9
     ctest1 = MPStates.init_test_mps("ctest1")
     @test expected(ctest1, "c+", 1, "c", 2, ferm_op="Z") ≈ complex(0., 2/9)
     @test expected(ctest1, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
     @test expected(ctest1, "c+", 3, "c", 2, ferm_op="Z") ≈ complex(0., 4/9)
     @test expected(ctest1, "c+", 2, "c", 6, ferm_op="Z") ≈ 0. atol=1e-15
     @test expected(ctest1, "c+", 6, "c", 1, ferm_op="Z") ≈ 0.  atol=1e-15
+    # On-site operations.
+    @test expected(ctest1, "c", 2, "c", 6) ≈ 0. atol=1e-15
+    @test expected(ctest1, "c+", 6, "c", 6) ≈ 1.
     rtest2 = MPStates.init_test_mps("rtest2")
     @test expected(rtest2, "c+", 1, "c", 2, ferm_op="Z") ≈ -4/9
     @test expected(rtest2, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
     @test expected(rtest2, "c+", 2, "c", 6, ferm_op="Z") ≈ 2/9*0.6*0.8
     @test expected(rtest2, "c+", 6, "c", 1, ferm_op="Z") ≈ 2/9*0.6*0.8
+    # On-site operations.
+    @test expected(rtest2, "c+", 2, "c", 2) ≈ 5/9
     ctest2 = MPStates.init_test_mps("ctest2")
     @test expected(ctest2, "c+", 1, "c", 2, ferm_op="Z") ≈ complex(0., -4/9)
     @test expected(ctest2, "c+", 1, "c", 4, ferm_op="Z") ≈ 0. atol=1e-15
@@ -64,17 +73,26 @@ end
     @test expected(rtest1, "b+", 3, "b", 2) ≈ -4/9
     @test expected(rtest1, "b+", 2, "b", 6) ≈ 0. atol=1e-15
     @test expected(rtest1, "b+", 6, "b", 1) ≈ 0.  atol=1e-15
+    # On-site operations.
+    @test expected(rtest1, "b+", 1, "b+", 1) ≈ 0.  atol=1e-15
+    @test expected(rtest1, "b+", 1, "b", 1) ≈ 1/9
+    @test expected(rtest1, "b+", 3, "b", 3) ≈ 4/9
     ctest1 = MPStates.init_test_mps("ctest1")
     @test expected(ctest1, "b+", 1, "b", 2) ≈ complex(0., 2/9)
     @test expected(ctest1, "b+", 1, "b", 4) ≈ 0. atol=1e-15
     @test expected(ctest1, "b+", 3, "b", 2) ≈ complex(0., 4/9)
     @test expected(ctest1, "b+", 2, "b", 6) ≈ 0. atol=1e-15
     @test expected(ctest1, "b+", 6, "b", 1) ≈ 0.  atol=1e-15
+    # On-site operations.
+    @test expected(ctest1, "b", 2, "b", 6) ≈ 0. atol=1e-15
+    @test expected(ctest1, "b+", 6, "b", 6) ≈ 1.
     rtest2 = MPStates.init_test_mps("rtest2")
     @test expected(rtest2, "b+", 1, "b", 2) ≈ -4/9
     @test expected(rtest2, "b+", 1, "b", 4) ≈ 0. atol=1e-15
     @test expected(rtest2, "b+", 2, "b", 6) ≈ -2/9*0.6*0.8
     @test expected(rtest2, "b+", 6, "b", 1) ≈ 2/9*0.6*0.8
+    # On-site operations.
+    @test expected(rtest2, "b+", 2, "b", 2) ≈ 5/9
     ctest2 = MPStates.init_test_mps("ctest2")
     @test expected(ctest2, "b+", 1, "b", 2) ≈ complex(0., -4/9)
     @test expected(ctest2, "b+", 1, "b", 4) ≈ 0. atol=1e-15
