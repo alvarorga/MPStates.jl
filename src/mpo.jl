@@ -20,6 +20,25 @@ struct Mpo{T<:Number}
 end
 
 """
+    init_mpo(T::Type, L::Int, d::Int)
+
+Initialize an Mpo of type `T` and length `L` with bond dimension `d` as an empty
+operator.
+"""
+function init_mpo(T::Type, L::Int, d::Int)
+    Id = Matrix{T}(I, d, d)
+    W1 = zeros(T, 1, d, d, 2)
+    W1[1, :, :, 1] = Id
+    Wi = zeros(T, 2, d, d, 2)
+    Wi[1, :, :, 1] = Id
+    Wi[2, :, :, 2] = Id
+    Wend = zeros(T, 2, d, d, 1)
+    Wend[2, :, :, 1] = Id
+    W = vcat([W1], fill(Wi, L-2), [Wend])
+    return Mpo{T}(W, L, d)
+end
+
+"""
     init_hubbard_mpo(L::Int, t::T, U::T) where T<:Number
 
 Initialize a simple Hubbard model as an Mpo:

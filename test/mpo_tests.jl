@@ -1,4 +1,22 @@
+using Test, MPStates
+
 @testset "Operations with Mpo" begin
+@testset "initialize empty Mpo" begin
+    L = 6
+    d = 2
+    Op = init_mpo(Float64, L, d)
+    cOp = init_mpo(ComplexF64, L, d)
+
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test expected(Op, rtest1) ≈ 0. atol=1e-15
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test expected(cOp, ctest1) ≈ 0. atol=1e-15
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test expected(Op, rtest2) ≈ 0. atol=1e-15
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test expected(cOp, ctest2) ≈ 0. atol=1e-15
+end
+
 @testset "make Hubbard MPO" begin
     L = 5
     t = 1.
