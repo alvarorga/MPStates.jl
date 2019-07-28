@@ -27,15 +27,50 @@ operator.
 """
 function init_mpo(T::Type, L::Int, d::Int)
     Id = Matrix{T}(I, d, d)
+    W = Vector{Array{T, 4}}(undef, L)
     W1 = zeros(T, 1, d, d, 2)
     W1[1, :, :, 1] = Id
+    W[1] = W1
     Wi = zeros(T, 2, d, d, 2)
     Wi[1, :, :, 1] = Id
     Wi[2, :, :, 2] = Id
+    for i=2:L-1
+        W[i] = deepcopy(Wi)
+    end
     Wend = zeros(T, 2, d, d, 1)
     Wend[2, :, :, 1] = Id
-    W = vcat([W1], fill(Wi, L-2), [Wend])
+    W[end] = Wend
     return Mpo{T}(W, L, d)
+end
+
+"""
+    add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
+             weights::Vector{T}) where T<:Number
+
+Add local/on-site operators to an Mpo.
+"""
+function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
+                  weights::Vector{T}) where T<:Number
+    # Convert op_i to have the same type as Op.
+    c_op_i = convert.(T, op_i)
+
+    for i=1:Op.L-1
+        Op.W[i][1, :, :, 2] .+= weights[i]*c_op_i
+    end
+    Op.W[end][1, :, :, 1] .+= weights[end]*c_op_i
+    return Op
+end
+
+"""
+    add_ops!(Op::Mpo{T}, str_op_i::String,
+             weights::Vector{T}) where T<:Number
+
+Add local/on-site operators to an Mpo.
+"""
+function add_ops!(Op::Mpo{T}, str_op_i::String,
+                  weights::Vector{T}) where T<:Number
+    op_i = str_to_op(str_op_i)
+    return add_ops!(Op, op_i, weights)
 end
 
 """

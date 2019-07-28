@@ -4,7 +4,7 @@ export Mps, init_mps, show_bond_dims
 export measure, contract, norm, ent_entropy,
     enlarge_bond_dimension!, svd_truncate!, simplify!,
     save_mps, read_mps
-export Mpo, init_hubbard_mpo, init_mpo
+export Mpo, init_hubbard_mpo, init_mpo, add_ops!
 export expected, m_variance, apply!
 export minimize!
 

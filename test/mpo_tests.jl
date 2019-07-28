@@ -17,6 +17,29 @@ using Test, MPStates
     @test expected(cOp, ctest2) ≈ 0. atol=1e-15
 end
 
+@testset "Mpo with local terms" begin
+    L = 6
+    d = 2
+
+    Op = init_mpo(Float64, L, d)
+    weights = [0.2, 0., 0.3, 0., 0.7, 0.]
+    Op = add_ops!(Op, "n", weights)
+
+    rtest1 = MPStates.init_test_mps("rtest1")
+    @test expected(Op, rtest1) ≈ 0.2*1/9 + 0.3*4/9 + 0.7*0.64
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test expected(Op, rtest2) ≈ 0.2*5/9 + 0.3 + 0.7
+
+    cOp = init_mpo(ComplexF64, L, d)
+    cweights = ComplexF64[1., 2., 0., 0., 0., 0.3]
+    add_ops!(cOp, "n", cweights)
+
+    ctest1 = MPStates.init_test_mps("ctest1")
+    @test expected(cOp, ctest1) ≈ 1/9 + 2*4/9 + 0.3
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test expected(cOp, ctest2) ≈ 5/9 + 2*5/9 + 0.3*0.64
+end
+
 @testset "make Hubbard MPO" begin
     L = 5
     t = 1.
