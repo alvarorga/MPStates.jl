@@ -48,6 +48,8 @@ end
              weights::Vector{T}) where T<:Number
 
 Add local/on-site operators to an Mpo.
+
+New operator is: Op + ∑ weights[i]*op_i.
 """
 function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
                   weights::Vector{T}) where T<:Number
@@ -66,11 +68,73 @@ end
              weights::Vector{T}) where T<:Number
 
 Add local/on-site operators to an Mpo.
+
+New operator is: Op + ∑ weights[i]*op_i.
 """
 function add_ops!(Op::Mpo{T}, str_op_i::String,
                   weights::Vector{T}) where T<:Number
-    op_i = str_to_op(str_op_i)
-    return add_ops!(Op, op_i, weights)
+    return add_ops!(Op, str_to_op(str_op_i), weights)
+end
+
+"""
+    add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
+             op_j::AbstractMatrix{<:Number},
+             weights::AbstractMatrix{T}) where T<:Number
+
+Add operators to an Mpo acting on two sites.
+
+New operator is: Op + ∑ weights[i, j]*op_i*op_j.
+"""
+function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
+                  op_j::AbstractMatrix{<:Number},
+                  weights::AbstractMatrix{T}) where T<:Number
+    # Extract on-site operators.
+    onsite_weights = diag(weights)
+    add_ops!(Op, op_j*op_i, onsite_weights)
+
+    # Convert op_i, op_j to have the same type as Op.
+    c_op_i = convert.(T, op_i)
+    c_op_j = convert.(T, op_j)
+
+    # Current bond dimensions of the Mpo.
+    w = size.(Op.W, 4)
+
+    # Allocate space for the new operators. Later we trim the operators at
+    # i=1, L to have dimensions (1, d, d, w1) and (wL, d, d, 1).
+    for i=1:Op.L
+        Wi = Op.W[i]
+        tmp_wi = zeros(eltype(Wi), size(Wi, 1) + Op.L, size(Wi, 2),
+                                   size(Wi, 3), size(Wi, 4) + Op.L)
+        tmp_wi[1:size(Wi, 1), 1:size(Wi, 2), 1:size(Wi, 3), 1:size(Wi, 4)] += Wi
+        Op.W[i] = tmp_wi
+    end
+
+    Id = matrix{T}(I, Op.d, Op.d)
+    # Write the new operators.
+    for irow=1:size(weights, 1)
+        for i=1:irow-1
+            abs(weights(irow, i) < 1e-8 && continue
+            Op.W[i][1, :, :, w[i]] += op_i
+        end
+        Op.W[i][1, :, :, w[i]] += op_i
+
+
+    end
+
+    return Op
+end
+
+"""
+    add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
+             weights::AbstractMatrix{T}) where T<:Number
+
+Add operators to an Mpo acting on two sites.
+
+New operator is: Op + ∑ weights[i, j]*op_i*op_j.
+"""
+function add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
+                  weights::AbstractMatrix{T}) where T<:Number
+    return add_ops!(Op, str_to_op(op_i), str_to_op(op_j), weights)
 end
 
 """
