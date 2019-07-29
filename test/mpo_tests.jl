@@ -1,4 +1,4 @@
-using Test, MPStates
+using Test, MPStates, LinearAlgebra
 
 @testset "Operations with Mpo" begin
 @testset "initialize empty Mpo" begin
@@ -26,8 +26,8 @@ end
     Op = add_ops!(Op, "n", weights)
 
     rtest1 = MPStates.init_test_mps("rtest1")
-    @test expected(Op, rtest1) ≈ 0.2*1/9 + 0.3*4/9 + 0.7*0.64
     rtest2 = MPStates.init_test_mps("rtest2")
+    @test expected(Op, rtest1) ≈ 0.2*1/9 + 0.3*4/9 + 0.7*0.64
     @test expected(Op, rtest2) ≈ 0.2*5/9 + 0.3 + 0.7
 
     cOp = init_mpo(ComplexF64, L, d)
@@ -35,9 +35,40 @@ end
     add_ops!(cOp, "n", cweights)
 
     ctest1 = MPStates.init_test_mps("ctest1")
-    @test expected(cOp, ctest1) ≈ 1/9 + 2*4/9 + 0.3
     ctest2 = MPStates.init_test_mps("ctest2")
+    @test expected(cOp, ctest1) ≈ 1/9 + 2*4/9 + 0.3
     @test expected(cOp, ctest2) ≈ 5/9 + 2*5/9 + 0.3*0.64
+end
+
+@testset "Mpo with two-body terms" begin
+    L = 6
+    d = 2
+
+    # Test with operators n_i*n_j.
+    Op = init_mpo(Float64, L, d)
+    V = (diagm(0 => [0., 0.8, 0., 0.5, 0., 0.])
+         .+ diagm(1 => [0.3, 0., 0.2, 0.1, 0.])
+         .+ diagm(2 => [0.4, 0.7, 0.6, 0.]))
+    V = Symmetric(V)
+    Op = add_ops!(Op, "n", "n", V)
+
+    rtest1 = MPStates.init_test_mps("rtest1")
+    rtest2 = MPStates.init_test_mps("rtest2")
+    @test expected(Op, rtest1) ≈ (0.8*4/9 + 0.5 + 0.4*4/9 + 0.2*0.64 + 1.4*4/9
+                                  + 1.2*4/9*0.64)
+    @test expected(Op, rtest2) ≈ (0.8*5/9 + 0.5 + 0.6*1/9 + 0.4 + 0.2 + 0.8*5/9
+                                  + 1.4*5/9 + 1.2)
+
+    cOp = init_mpo(ComplexF64, L, d)
+    cV = convert.(ComplexF64, V)
+    add_ops!(cOp, "n", "n", cV)
+
+    ctest1 = MPStates.init_test_mps("ctest1")
+    ctest2 = MPStates.init_test_mps("ctest2")
+    @test expected(cOp, ctest1) ≈ (0.8*4/9 + 0.5 + 0.4*4/9 + 0.2*0.64 + 1.4*4/9
+                                   + 1.2*4/9*0.64)
+    @test expected(cOp, ctest2) ≈ (0.8*5/9 + 0.5 + 0.6*1/9 + 0.4 + 0.2 + 0.8*5/9
+                                   + 1.4*5/9 + 1.2)
 end
 
 @testset "make Hubbard MPO" begin

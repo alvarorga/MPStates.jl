@@ -104,45 +104,58 @@ function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
     c_op_j = convert.(T, op_j)
 
     # Current bond dimensions of the Mpo.
-    w = size.(Op.W, 4)
+    max_w = maximum(size.(Op.W, 4))
+    L = Op.L
 
-    # Allocate space for the new operators. Later we trim the operators at
-    # i=1, L to have dimensions (1, d, d, w1) and (wL, d, d, 1).
-    for i=1:Op.L
+    # Allocate space for the new operators. Let the operators at i=1 and i=L
+    # have dimensions (1, d, d, max_w) and (max_w, d, d, 1).
+    for i=1:L
         Wi = Op.W[i]
-        tmp_wi = zeros(eltype(Wi), size(Wi, 1) + Op.L, size(Wi, 2),
-                                   size(Wi, 3), size(Wi, 4) + Op.L)
+        tmp_wi = zeros(eltype(Wi), i > 1 ? max_w + L : 1,
+                                   size(Wi, 2),
+                                   size(Wi, 3),
+                                   i < L ? max_w + L : 1)
         tmp_wi[1:size(Wi, 1), 1:size(Wi, 2), 1:size(Wi, 3), 1:size(Wi, 4)] += Wi
         Op.W[i] = tmp_wi
     end
 
-    display(size.(Op.W, 1))
-    display(size.(Op.W, 4))
+    # Write the new operators. Each iteration corresponds to writing all
+    # operators in weights[i, :]*op_i*op_j.
+    for i=1:L
+        # Continue if there are no operators to write.
+        all(abs.(weights[i, :]) .< 1e-8) && continue
 
-    # Write the new operators.
-    for i=1:Op.L
-        for j=findfirst(abs.(weights[i, :]) .> 1e-8):i-1
-            Op.W[j][1, :, :, w[j]+i] += op_j*weights[i, j]
-            if j > 1
-                Op.W[j][w[j]+i, :, :, w[j]+i] += ferm_op
+        # Write op_i.
+        if i > 1
+            Op.W[i][max_w+i, :, :, i < L ? 2 : 1] = op_i
+        end
+        if i < L
+            Op.W[i][1, :, :, max_w+i] = op_i
+        end
+
+        # Write J[i, j]*op_j, j != i.
+        for j=1:i-1
+            Op.W[j][1, :, :, max_w+i] = op_j*weights[i, j]
+        end
+        for j=i+1:L-1
+            Op.W[j][max_w+i, :, :, 2] = op_j*weights[i, j]
+        end
+        Op.W[L][max_w+i, :, :, 1] += op_j*weights[i, L]
+
+        # Write operators between op_i and op_j.
+        if any(abs.(weights[i, 1:i-1]) .> 1e-8)
+            for j=findfirst(abs.(weights[i, :]) .> 1e-8)+1:i-1
+                Op.W[j][max_w+i, :, :, max_w+i] = ferm_op
             end
         end
-        if i > 1
-            Op.W[i][w[i]+i, :, :, i < Op.L ? 2 : 1] += op_i
-        end
-        if i < Op.L
-            Op.W[i][1, :, :, w[i]+1] += op_j
-        end
-        for j=i+1:findlast(abs.(weights[:, i] .> 1e-8))
-            Op.W[j][w[j]+i, :, :, j < Op.L ? 2 : 1] += op_i*weights[j, i]
-            Op.W[j][w[j]+i, :, :, w[j]+i] += ferm_op
+        if any(abs.(weights[i, i+1:L]) .> 1e-8)
+            for j=i+1:findlast(abs.(weights[i, :]) .> 1e-8)-1
+                Op.W[j][max_w+i, :, :, max_w+i] = ferm_op
+            end
         end
     end
 
-    # Trim the operators at i=1, L to have dimensions (1, d, d, w1) and
-    # (wL, d, d, 1).
-    Op.W[1] = Op.W[1][1:1, :, :, :]
-    Op.W[end] = Op.W[end][:, :, :, 1:1]
+    # TODO: compress the operators of the Mpo to remove unnecessary zeros.
 
     return Op
 end
