@@ -79,15 +79,22 @@ end
 """
     add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
              op_j::AbstractMatrix{<:Number},
-             weights::AbstractMatrix{T}) where T<:Number
+             weights::AbstractMatrix{T};
+             ferm_op::AbstractMatrix{<:Number}=Matrix{Float64}(I, Op.d, Op.d)
+             ) where T<:Number
 
 Add operators to an Mpo acting on two sites.
 
-New operator is: Op + ∑ weights[i, j]*op_i*op_j.
+New operator is: Op + ∑ weights[i, j]*op_i*op_j. `ferm_op` is the fermion parity
+operator: 1-2n that goes between the fermionic creation and annihilation
+operators. If the operators `op_i`, `op_j` are not fermionic, `ferm_op` defaults
+to the identity matrix.
 """
 function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
                   op_j::AbstractMatrix{<:Number},
-                  weights::AbstractMatrix{T}) where T<:Number
+                  weights::AbstractMatrix{T};
+                  ferm_op::AbstractMatrix{<:Number}=Matrix{Float64}(I, Op.d, Op.d)
+                  ) where T<:Number
     # Extract on-site operators.
     onsite_weights = diag(weights)
     add_ops!(Op, op_j*op_i, onsite_weights)
@@ -109,32 +116,51 @@ function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
         Op.W[i] = tmp_wi
     end
 
-    Id = matrix{T}(I, Op.d, Op.d)
+    display(size.(Op.W, 1))
+    display(size.(Op.W, 4))
+
     # Write the new operators.
-    for irow=1:size(weights, 1)
-        for i=1:irow-1
-            abs(weights(irow, i) < 1e-8 && continue
-            Op.W[i][1, :, :, w[i]] += op_i
+    for i=1:Op.L
+        for j=findfirst(abs.(weights[i, :]) .> 1e-8):i-1
+            Op.W[j][1, :, :, w[j]+i] += op_j*weights[i, j]
+            if j > 1
+                Op.W[j][w[j]+i, :, :, w[j]+i] += ferm_op
+            end
         end
-        Op.W[i][1, :, :, w[i]] += op_i
-
-
+        if i > 1
+            Op.W[i][w[i]+i, :, :, i < Op.L ? 2 : 1] += op_i
+        end
+        if i < Op.L
+            Op.W[i][1, :, :, w[i]+1] += op_j
+        end
+        for j=i+1:findlast(abs.(weights[:, i] .> 1e-8))
+            Op.W[j][w[j]+i, :, :, j < Op.L ? 2 : 1] += op_i*weights[j, i]
+            Op.W[j][w[j]+i, :, :, w[j]+i] += ferm_op
+        end
     end
+
+    # Trim the operators at i=1, L to have dimensions (1, d, d, w1) and
+    # (wL, d, d, 1).
+    Op.W[1] = Op.W[1][1:1, :, :, :]
+    Op.W[end] = Op.W[end][:, :, :, 1:1]
 
     return Op
 end
 
 """
     add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
-             weights::AbstractMatrix{T}) where T<:Number
+             weights::AbstractMatrix{T};
+             ferm_op::String="Id") where T<:Number
 
 Add operators to an Mpo acting on two sites.
 
 New operator is: Op + ∑ weights[i, j]*op_i*op_j.
 """
 function add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
-                  weights::AbstractMatrix{T}) where T<:Number
-    return add_ops!(Op, str_to_op(op_i), str_to_op(op_j), weights)
+                  weights::AbstractMatrix{T};
+                  ferm_op::String="Id") where T<:Number
+    return add_ops!(Op, str_to_op(op_i), str_to_op(op_j), weights,
+                    ferm_op=str_to_op(ferm_op, Op.d))
 end
 
 """

@@ -61,7 +61,7 @@ Return the matrix that corresponds to an operator input as a string. Example:
 "n" -> [[0. 0.];
         [0. 1.]].
 """
-function str_to_op(str_op::String)
+function str_to_op(str_op::String, d::Int=0)
     # Operators for 2 physical dimensions: fermions and hard-core bosons.
     if str_op == "n"
         # Number operator.
@@ -93,6 +93,9 @@ function str_to_op(str_op::String)
         return [[0. sqrt(2) 0.];
                 [0. 0. sqrt(2)];
                 [0. 0. 0.]]
+    # General identity matrix with the same physical dimensions as the Mpo.
+    elseif str_op == "Id"
+        return Matrix{Float64}(I, d, d)
     else
         throw("Operator $str_op is not defined.")
     end
