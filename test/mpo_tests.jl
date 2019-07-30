@@ -69,6 +69,67 @@ end
                                    + 1.2*4/9*0.64)
     @test expected(cOp, ctest2) ≈ (0.8*5/9 + 0.5 + 0.6*1/9 + 0.4 + 0.2 + 0.8*5/9
                                    + 1.4*5/9 + 1.2)
+
+    # Add fermionic operators to existing operators.
+    J = zeros(L, L)
+    J[1, 2] = 0.5
+    J[2, 1] = 0.3
+    J[1, 5] = 0.4
+    J[5, 1] = 0.3
+    J[1, 6] = 0.7
+    J[6, 1] = 0.8
+    J[2, 2] = 0.1
+    J[2, 6] = 0.9
+    J[6, 2] = 1.2
+
+    Op = add_ops!(Op, "c+", "c", J, ferm_op="Z")
+    @test expected(Op, rtest1) ≈ (0.8*4/9 + 0.5 + 0.4*4/9 + 0.2*0.64 + 1.4*4/9
+                                  + 1.2*4/9*0.64 - 0.5*2/9 - 0.3*2/9 + 0.1*4/9)
+    @test expected(Op, rtest2) ≈ (0.8*5/9 + 0.5 + 0.6*1/9 + 0.4 + 0.2 + 0.8*5/9
+                                  + 1.4*5/9 + 1.2 - 0.5*4/9 - 0.3*4/9
+                                  + 0.7*2/9*0.8*0.6 + 0.8*2/9*0.8*0.6
+                                  + 0.1*5/9 + 0.9*2/9*0.8*0.6 + 1.2*2/9*0.8*0.6)
+
+    cJ = convert.(ComplexF64, J)
+    add_ops!(cOp, "c+", "c", cJ, ferm_op="Z")
+    @test expected(cOp, ctest1) ≈ (0.8*4/9 + 0.5 + 0.4*4/9 + 0.2*0.64 + 1.4*4/9
+                                   + 1.2*4/9*0.64 + 0.5*complex(0, 2/9)
+                                   + 0.3*complex(0, -2/9) + 0.1*4/9)
+    @test expected(cOp, ctest2) ≈ (0.8*5/9 + 0.5 + 0.6*1/9 + 0.4 + 0.2 + 0.8*5/9
+                                   + 1.4*5/9 + 1.2 + 0.5*complex(0, -4/9)
+                                   + 0.3*complex(0, 4/9)
+                                   + 0.7*2/9*0.8*0.6*complex(0., 1.)
+                                   + 0.8*2/9*0.8*0.6*complex(0., -1.)
+                                   + 0.1*5/9 + 0.9*2/9*0.8*0.6 + 1.2*2/9*0.8*0.6)
+
+    # Two-body non-fermionic creation and annihilation operators.
+    J = zeros(L, L)
+    J[1, 2] = 0.5
+    J[2, 1] = 0.3
+    J[1, 5] = 0.4
+    J[5, 1] = 0.3
+    J[1, 6] = 0.7
+    J[6, 1] = 0.8
+    J[2, 2] = 0.1
+    J[2, 6] = 0.9
+    J[6, 2] = 1.2
+
+    Op = init_mpo(Float64, L, d)
+    Op = add_ops!(Op, "c+", "c", J)
+    @test expected(Op, rtest1) ≈ - 0.5*2/9 - 0.3*2/9 + 0.1*4/9
+    @test expected(Op, rtest2) ≈ (- 0.5*4/9 - 0.3*4/9 + 0.7*2/9*0.8*0.6
+                                  + 0.8*2/9*0.8*0.6 + 0.1*5/9 - 0.9*2/9*0.8*0.6
+                                  - 1.2*2/9*0.8*0.6)
+
+    cOp = init_mpo(ComplexF64, L, d)
+    cJ = convert.(ComplexF64, J)
+    add_ops!(cOp, "c+", "c", cJ)
+    @test expected(cOp, ctest1) ≈ (0.5*complex(0, 2/9) + 0.3*complex(0, -2/9)
+                                   + 0.1*4/9)
+    @test expected(cOp, ctest2) ≈ (0.5*complex(0, -4/9) + 0.3*complex(0, 4/9)
+                                   + 0.7*2/9*0.8*0.6*complex(0., 1.)
+                                   + 0.8*2/9*0.8*0.6*complex(0., -1.)
+                                   + 0.1*5/9 - 0.9*2/9*0.8*0.6 - 1.2*2/9*0.8*0.6)
 end
 
 @testset "make Hubbard MPO" begin
