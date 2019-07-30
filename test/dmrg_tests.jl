@@ -17,22 +17,21 @@ end
         J[i,i+1] = i
         J[i+1, i] = i
     end
-    D = zeros(T, L, L)
-    is_fermionic = true
-    H = MPStates.init_mpo(L, J, D, is_fermionic)
+    H = init_mpo(T, L, 2)
+    add_ops!(H, "b+", "b", convert.(T, J))
     # Max allowed bond dimension.
-    max_D = 10
+    m = 10
 
     # DMRG1.
-    psi = MPStates.init_mps(T, L, "W")
-    E, var = MPStates.minimize!(psi, H, max_D, "DMRG1", debug=0)
+    psi = init_mps(T, L, "W")
+    E, var = minimize!(psi, H, m, "DMRG1", debug=0)
 
     # DMRG2.
-    psi = MPStates.init_mps(T, L, "W")
-    E, var = MPStates.minimize!(psi, H, max_D, "DMRG2", debug=0)
+    psi = init_mps(T, L, "W")
+    E, var = minimize!(psi, H, m, "DMRG2", debug=0)
 
     # DMRG3S.
-    psi = MPStates.init_mps(T, L, "W")
-    E, var = MPStates.minimize!(psi, H, max_D, "DMRG2", debug=0)
+    psi = init_mps(T, L, "W")
+    E, var = minimize!(psi, H, m, "DMRG2", debug=0)
 end
 end # @testset "Integration tests: variational/DMRG algorithms"

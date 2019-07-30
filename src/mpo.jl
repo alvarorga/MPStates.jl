@@ -177,47 +177,6 @@ function add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
 end
 
 """
-    init_hubbard_mpo(L::Int, t::T, U::T) where T<:Number
-
-Initialize a simple Hubbard model as an Mpo:
-``H = \\sum t\\ c^\\dagger_i c_{i+1} + U n_i n_{i+1}``
-
-# Arguments:
-- `L::Int`: Mpo's length.
-- `t::T`: tunneling amplitude
-- `U::T`: Hubbard interaction strength.
-"""
-function init_hubbard_mpo(L::Int, t::T, U::T) where T<:Number
-    W = Vector{Array{T, 4}}()
-    # Tensors that make the structure of the Mpo.
-    Wi = zeros(T, 5, 2, 2, 5)
-    # Identity operators.
-    Id = Matrix{T}(I, 2, 2)
-    Wi[1, :, :, 1] = Id
-    Wi[2, :, :, 2] = Id
-    # Creation operators.
-    Wi[1, 1, 2, 3] = convert(T, t)
-    Wi[4, 1, 2, 2] = 1.
-    # Annihilation operators.
-    Wi[3, 2, 1, 2] = 1.
-    Wi[1, 2, 1, 4] = convert(T, t)
-    # Number operators.
-    Wi[1, 2, 2, 5] = convert(T, U)
-    Wi[5, 2, 2, 2] = 1.
-    # Initial and final tensors.
-    W0 = reshape(Wi[1, :, :, :], (1, size(Wi, 2), size(Wi, 3), size(Wi, 4)))
-    W_end = reshape(Wi[:, :, :, 2], (size(Wi, 1), size(Wi, 2), size(Wi, 3), 1))
-
-    push!(W, W0)
-    for i=2:L-1
-        push!(W, Wi)
-    end
-    push!(W, W_end)
-
-    return Mpo(W, L, 2)
-end
-
-"""
     init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
 
 Initialize and Mpo with bond dimension `d=2` with hopping matrix `J` and
