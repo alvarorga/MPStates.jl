@@ -32,6 +32,6 @@ end
 
     # DMRG3S.
     psi = init_mps(T, L, "W")
-    E, var = minimize!(psi, H, m, "DMRG2", debug=0)
+    E, var = minimize!(psi, H, m, "DMRG3S", debug=0)
 end
 end # @testset "Integration tests: variational/DMRG algorithms"
