@@ -8,11 +8,22 @@
               debug::Int=1) where T<:Number
 
 Minimize energy of `psi` with respect to `H`, allowing maximum bond dimension
-`max_m`.
+`max_m`, using a DMRG algorithm specified by `algorithm`. Implemented algorithms
+are: "DMRG1" for one site DMRG, "DMRG2" for two site DMRG, and "DMRG3S" for
+strictly single site DMRG with subspace expansion.
 
-Return the energy and variance of `psi` at every sweep. The `debug` parameter
-controls the amount of information the script outputs at runtime. Possible
-algorithms to minimize the energy are: "DMRG1": 1-site DMRG.
+Warning: the Hamiltonian is assumed to be Hermitian. This function will silently
+fail if that is not the case.
+
+The `debug` parameter controls the information at every step of the minmization:
+    - 0: no info given.
+    - 1: energy, variance and their change with respect to their last value
+        after every right + left sweep.
+    - 2: energy and size of the local Hamiltonian at every step of every sweep.
+
+Output:
+    - `E`: energy of `psi` after every right + left sweep.
+    - `var`: variance of `psi` after every right + left sweep.
 """
 function minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1";
                    max_iters::Int=500, tol::Float64=1e-6,
