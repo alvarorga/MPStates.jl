@@ -239,7 +239,12 @@ function make_right_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Numbe
     return psi
 end
 
-function Base.display(psi::Mps{T}) where T<:Number
+"""
+    Base.display(psi::Mps{<:Number})
+
+Show relevant information of `psi`.
+"""
+function Base.display(psi::Mps{<:Number})
     println("MPS:")
     println("   Type: $(eltype(psi.M[1]))")
     println("   Length: $(psi.L)")
@@ -248,8 +253,26 @@ function Base.display(psi::Mps{T}) where T<:Number
     return
 end
 
-function show_bond_dims(psi::Mps{T}) where T<:Number
-    bdims = vcat(1, size.(psi.M[:], 3))
+"""
+    show_bond_dims(psi::Mps{<:Number})
+
+Show the bond dimensions of `psi`.
+"""
+function show_bond_dims(psi::Mps{<:Number})
+    bdims = vcat(1, size.(psi.M, 3))
     println(join(bdims, "-"))
     return
+end
+
+"""
+    Base.convert(T::Type, psi::Mps{<:Number})
+
+Convert an `psi` into an Mps with type `T`.
+"""
+function Base.convert(T::Type, psi::Mps{<:Number})
+    cM = Vector{Array{T, 3}}()
+    for i=1:psi.L
+        push!(cM, convert.(T, psi.M[i]))
+    end
+    return Mps(cM, psi.L, psi.d)
 end
