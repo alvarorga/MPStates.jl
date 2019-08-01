@@ -3,37 +3,76 @@
 #
 
 """
-    minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1";
-              max_iters::Int=500, tol::Float64=1e-6,
-              debug::Int=1) where T<:Number
+Options for the DMRG minimization algorithm.
 
-Minimize energy of `psi` with respect to `H`, allowing maximum bond dimension
-`max_m`, using a DMRG algorithm specified by `algorithm`. Implemented algorithms
-are: "DMRG1" for one site DMRG, "DMRG2" for two site DMRG, and "DMRG3S" for
-strictly single site DMRG with subspace expansion.
+Fields:
+    algorithm::String: DMRG algorithm used for minimizing the state. Can be:
+        "DMRG1" for one site DMRG, "DMRG2" for two site DMRG, and "DMRG3S" for
+        strictly single site DMRG with subspace expansion.
+    tol::Float64: stop the algorithm when the change in the variance of the
+        state is less than `tol`.
+    max_sweeps::Int: maximum number of sweeps allowed.
+    debug::Int: output information at every step of the minmization:
+        - 0: no info given.
+        - 1: energy, variance and their variation with respect to their last
+            value after every right + left sweep.
+        - 2: energy and size of the local Hamiltonian at every step of every
+            sweep.
+    sweep_dims::Vector{Int}: maximum bond dimension at every sweep.
+"""
+struct MinimizeOpts
+    algorithm::String
+    tol::Float64
+    max_sweeps::Int
+    debug::Int
+    sweep_dims::Vector{Int}
+end
+
+"""
+    MinimizeOpts(m::Int, algorithm::String; debug=0)
+
+Initialize MinimizeOpts for a maximum bond dimension `m`.
+"""
+function MinimizeOpts(m::Int, algorithm::String; debug=0)
+    tol = 1e-6
+    max_sweeps = 200
+    # We fill `sweep_dims` starting with m=8 and doubling the bond dimension
+    # each five sweeps until the maximum bond dimension `m` is reached.
+    sweep_dims = fill(m, max_sweeps)
+    mi = 8
+    cont = 1
+    while mi < m
+        sweep_dims[cont:cont+4] .= mi
+        mi *= 2
+        cont += 5
+    end
+    return MinimizeOpts(algorithm, tol, max_sweeps, debug, sweep_dims)
+end
+
+"""
+    MinimizeOpts(sweep_dims::Vector{Int}, algorithm::String; debug=0)
+
+Initialize MinimizeOpts with an specified set of bond dimensions for all
+sweeps.
+"""
+function MinimizeOpts(sweep_dims::Vector{Int}, algorithm::String; debug=0)
+    tol = 1e-6
+    return MinimizeOpts(algorithm, tol, length(sweeps), debug, sweep_dims)
+end
+
+"""
+    minimize!(psi::Mps{T}, H::Mpo{T}, minopts::MinimizeOpts) where T<:Number
+
+Minimize energy of `psi` with respect to `H`.
 
 Warning: the Hamiltonian is assumed to be Hermitian. This function will silently
 fail if that is not the case.
-
-The `debug` parameter controls the information at every step of the minmization:
-    - 0: no info given.
-    - 1: energy, variance and their change with respect to their last value
-        after every right + left sweep.
-    - 2: energy and size of the local Hamiltonian at every step of every sweep.
 
 Output:
     - `E`: energy of `psi` after every right + left sweep.
     - `var`: variance of `psi` after every right + left sweep.
 """
-function minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1";
-                   max_iters::Int=500, tol::Float64=1e-6,
-                   debug::Int=1) where T<:Number
-    # Initialize the bond dimension at a sufficiently large number.
-    m = max(8, maximum(size.(psi.M, 3)))
-    # Manually increase bond dimension for DMRG1.
-    if algorithm == "DMRG1"
-        enlarge_bond_dimension!(psi, m)
-    end
+function minimize!(psi::Mps{T}, H::Mpo{T}, min_opts::MinimizeOpts) where T<:Number
 
     # Create left and right environments.
     Le = fill(ones(T, 1, 1, 1), psi.L)
@@ -45,49 +84,50 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1"
 
     # Compute energy of state and variance at each sweep. Iteration 1 is just
     # the computation of the energy and the variance.
+    # Parameter to control subspace expansion in "DMRG3S" algorithm.
     α = 1e-6
     E = [real(expected(H, psi))]
     var = [m_variance(H, psi)]
     it = 2
+    # Variable to observe if the variance has stopped decreasing at all.
     var_is_stuck = false
+    # Variable to see if the tolerace of the variance has been reached.
+    reached_tol = false
+    # Cache to store temporaries.
     cache = Cache(Vector{AbstractArray{T}}())
-    while var[it-1] > tol && it <= max_iters && !var_is_stuck
+
+    while !reached_tol && it <= min_opts.max_sweeps && !var_is_stuck
+        # Maximum bond dimension in this sweep.
+        m = min_opts.sweep_dims[it]
         # Do left and right sweeps.
-        if algorithm == "DMRG1"
-            Es = do_sweep_1s!(psi, H, Le, Re, -1, debug)
-            Es = do_sweep_1s!(psi, H, Le, Re, +1, debug)
-        elseif algorithm == "DMRG2"
-            Es = do_sweep_2s!(psi, H, Le, Re, -1, m, cache, debug)
-            Es = do_sweep_2s!(psi, H, Le, Re, +1, m, cache, debug)
-        elseif algorithm == "DMRG3S"
-            Es, α = do_sweep_3s!(psi, H, Le, Re, -1, m, α, cache, debug)
-            Es, α = do_sweep_3s!(psi, H, Le, Re, +1, m, α, cache, debug)
+        if min_opts.algorithm == "DMRG1"
+            Es = do_sweep_1s!(psi, H, Le, Re, -1, m, min_opts.debug)
+            Es = do_sweep_1s!(psi, H, Le, Re, +1, m, min_opts.debug)
+        elseif min_opts.algorithm == "DMRG2"
+            Es = do_sweep_2s!(psi, H, Le, Re, -1, m, cache, min_opts.debug)
+            Es = do_sweep_2s!(psi, H, Le, Re, +1, m, cache, min_opts.debug)
+        elseif min_opts.algorithm == "DMRG3S"
+            Es, α = do_sweep_3s!(psi, H, Le, Re, -1, m, α, cache, min_opts.debug)
+            Es, α = do_sweep_3s!(psi, H, Le, Re, +1, m, α, cache, min_opts.debug)
         end
 
-        # Compute energy and variance of `psi` after sweeps.
+        # Update energy and variance of `psi` after the sweep.
         push!(E, Es)
         push!(var, real(m_variance(H, psi)))
-        if debug > 0
+
+        # Print debug information: energy, variance and their variation.
+        if min_opts.debug > 0
             println("Done sweep $it, bond dimension: $m")
             @printf("    E: %.6e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
             @printf("    var: %.6e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
-            @printf("    1-norm(psi): %.2e\n", 1. - norm(psi))
         end
 
-        # If variance converges enlarge bond dimension until it reaches `max_m`.
-        if abs(var[it] - var[it-1])/var[it] < 1e-2 && m < max_m
-            m = min(m*psi.d, max_m)
-            # For DMRG1 the bond dimension is grown manually.
-            if algorithm == "DMRG1"
-                enlarge_bond_dimension!(psi, m)
-            end
-        end
-
-        # Update while loop control parameters.
-        var_is_stuck = abs(var[it] - var[it-1]) < 1e-8
+        # Update minimization loop control parameters. Prevent stopping if
+        # maximum bond dimension has not been reached yet.
+        var_is_stuck = abs(var[it] - var[it-1]) < 1e-8 && m == maximum(min_opts.sweep_dims)
+        reached_tol = var[it] <= min_opts.tol && m == maximum(min_opts.sweep_dims)
         it += 1
     end
-
     return E, var
 end
 
@@ -136,18 +176,24 @@ end
 """
     do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
                  Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, debug::Int=0) where T<:Number
+                 sense::Int, max_m::Int, debug::Int=0) where T<:Number
 
 Do a sweep to locally minimize the energy of `psi` at 1 site per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
 function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, debug::Int=0) where T<:Number
+                      sense::Int, max_m::Int, debug::Int=0) where T<:Number
 
-    # Energy after the sweep.
-    E = 0.
+    # Manually increase the bond dimension.
+    enlarge_bond_dimension!(psi, max_m)
+
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
+    # Energy before the sweep starts. Depends on the sweep sense, assume the
+    # last sweep had the opposite sense.
+    E = sense == +1 ?
+        sum(real(Re[1].*Le[2])) : sum(real(Re[psi.L-1].*Le[psi.L]))
+
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L) : reverse(1:psi.L)
     for i in sweep_sites
@@ -220,9 +266,12 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
                       sense::Int, m::Int,
                       cache::Cache{T}, debug::Int=0) where T<:Number
 
-    # Energy after sweep.
-    E = 0.
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
+    # Energy before the sweep starts. Depends on the sweep sense, assume the
+    # last sweep had the opposite sense.
+    E = sense == +1 ?
+        sum(real(Re[1].*Le[2])) : sum(real(Re[psi.L-1].*Le[psi.L]))
+
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L-1)
     for i in sweep_sites
@@ -346,6 +395,7 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                       sense::Int, m::Int, α::Float64,
                       cache::Cache{T}, debug::Int=0) where T<:Number
+
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
     # last sweep had the opposite sense.

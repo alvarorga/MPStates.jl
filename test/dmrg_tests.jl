@@ -18,28 +18,18 @@ end
 
     # Max allowed bond dimension.
     m = 20
-    # Maximum number of iterations.
-    max_iters = 10
+    min_opts = MinimizeOpts(m, debug=0)
 
     # DMRG1.
     psi = init_mps(T, L, "W")
-    E1, var = minimize!(psi, H, m, "DMRG1", debug=0, max_iters=max_iters)
-    for i=2:max_iters
-        @test E1[i] < E1[i-1]
-    end
+    E1, var1 = minimize!(psi, H, min_opts)
 
     # DMRG2.
     psi = init_mps(T, L, "W")
-    E2, var = minimize!(psi, H, m, "DMRG2", debug=0, max_iters=max_iters)
-    for i=2:max_iters
-        @test E2[i] < E2[i-1]
-    end
+    E2, var2 = minimize!(psi, H, min_opts)
 
     # DMRG3S.
     psi = init_mps(T, L, "W")
-    E3, var = minimize!(psi, H, m, "DMRG3S", debug=0, max_iters=max_iters)
-    for i=2:max_iters
-        @test E3[i] < E3[i-1]
-    end
+    E3, var3 = minimize!(psi, H, min_opts)
 end
 end # @testset "Integration tests: variational/DMRG algorithms"

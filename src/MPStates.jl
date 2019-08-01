@@ -6,7 +6,7 @@ export measure, contract, norm, ent_entropy,
     save_mps, read_mps
 export Mpo, init_mpo, add_ops!
 export expected, m_variance, apply!
-export minimize!
+export MinimizeOpts, minimize!
 
 using LinearAlgebra, TensorOperations, Random, HDF5, Printf, Arpack
 
