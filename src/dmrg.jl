@@ -57,7 +57,7 @@ sweeps.
 """
 function MinimizeOpts(sweep_dims::Vector{Int}, algorithm::String; debug=0)
     tol = 1e-6
-    return MinimizeOpts(algorithm, tol, length(sweeps), debug, sweep_dims)
+    return MinimizeOpts(algorithm, tol, length(sweep_dims), debug, sweep_dims)
 end
 
 """
