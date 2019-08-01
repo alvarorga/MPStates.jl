@@ -1,4 +1,4 @@
-using Test, MPStates, LinearAlgebra
+using Test, MPStates, LinearAlgebra, Random
 
 @testset "Operations with Mpo" begin
 # Initialize testing Mps.
@@ -168,7 +168,7 @@ end
     d = 2
 
     # Operator matrices.
-    J = Symmetric(reshape(tan.(1:L^2).*cos.(1:L^2), L, L))
+    J = reshape(tan.(1:L^2).*cos.(1:L^2), L, L)
 
     # Test with real Mps.
     Op = init_mpo(Float64, L, d)
@@ -196,5 +196,89 @@ end
     end
     @test expected(cOp, ctest1) ≈ cres1
     @test expected(cOp, ctest2) ≈ cres2
+end
+
+@testset "expected of hermitian Mpo returns real number" begin
+    L = 6
+    d = 2
+
+    # Let's create some random complex states to make sure that our premade
+    # states have nothing in particular that could oversee some bug.
+    Random.seed!(0)
+    rtest3 = init_mps(Float64, L, "random")
+    rtest4 = init_mps(Float64, L, "random")
+    ctest3 = init_mps(ComplexF64, L, "random")
+    ctest4 = init_mps(ComplexF64, L, "random")
+
+    # Operator matrices.
+    J = Symmetric(reshape(tan.(1:L^2).*cos.(1:L^2), L, L))
+    cJ = Hermitian(complex.(reshape(tan.(1:L^2).^2, L, L),
+                            reshape(sin.(1:L^2), L, L)))
+
+    # Test with real symmetric Mpo (or complex with zero imaginary part).
+    Op = init_mpo(Float64, L, d)
+    add_ops!(Op, "c+", "c", J, ferm_op="Z")
+    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-15
+
+    Op = init_mpo(Float64, L, d)
+    add_ops!(Op, "c+", "c", J.^3)
+    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-15
+
+    Op = init_mpo(Float64, L, d)
+    add_ops!(Op, "n", "n", J)
+    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-15
+
+    cOp = init_mpo(ComplexF64, L, d)
+    add_ops!(cOp, "c+", "c", convert.(ComplexF64, J), ferm_op="Z")
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    # Reduce error tolerance here because errors grow a lot with random states.
+    @test imag(expected(cOp, ctest3)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
+
+    cOp = init_mpo(ComplexF64, L, d)
+    add_ops!(cOp, "c+", "c", convert.(ComplexF64, tan.(J)))
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest3)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
+
+    cOp = init_mpo(ComplexF64, L, d)
+    add_ops!(cOp, "n", "n", convert.(ComplexF64, tan.(J)))
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest3)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
+
+    # Test with complex hermitian Mpo.
+    cOp = init_mpo(ComplexF64, L, d)
+    add_ops!(cOp, "c+", "c", cJ, ferm_op="Z")
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest3)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
+
+    cOp = init_mpo(ComplexF64, L, d)
+    add_ops!(cOp, "c+", "c", cJ.^2)
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest3)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
+
+    cOp = init_mpo(ComplexF64, L, d)
+    add_ops!(cOp, "n", "n", cJ)
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest3)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
 end
 end # @testset "Operations with Mpo"

@@ -1,4 +1,4 @@
-using Test, LinearAlgebra, MPStates
+using Test, LinearAlgebra, MPStates, Random
 
 include("./tensor_operations_tests.jl")
 include("./mps_tests.jl")
