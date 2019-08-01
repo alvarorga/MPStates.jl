@@ -263,16 +263,3 @@ function show_bond_dims(psi::Mps{<:Number})
     println(join(bdims, "-"))
     return
 end
-
-"""
-    Base.convert(T::Type, psi::Mps{<:Number})
-
-Convert an `psi` into an Mps with type `T`.
-"""
-function Base.convert(T::Type, psi::Mps{<:Number})
-    cM = Vector{Array{T, 3}}()
-    for i=1:psi.L
-        push!(cM, convert.(T, psi.M[i]))
-    end
-    return Mps(cM, psi.L, psi.d)
-end
