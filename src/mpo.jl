@@ -140,7 +140,9 @@ function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
         for j=i+1:L-1
             Op.W[j][max_w+i, :, :, 2] = op_j*weights[i, j]
         end
-        Op.W[L][max_w+i, :, :, 1] += op_j*weights[i, L]
+        if i < L
+            Op.W[L][max_w+i, :, :, 1] += op_j*weights[i, L]
+        end
 
         # Write operators between op_i and op_j.
         if any(abs.(weights[i, 1:i-1]) .> 1e-8)
