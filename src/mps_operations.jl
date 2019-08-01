@@ -121,12 +121,12 @@ function contract(psi::Mps{T}, phi::Mps{T}) where T<:Number
 end
 
 """
-    norm(psi::Mps{T}) where T<:Number
+    norm(psi::Mps{<:Number})
 
 Norm of a MPS: <psi|psi>. Extend the LinearAlgebra module function.
 """
-function LinearAlgebra.norm(psi::Mps{T}) where T<:Number
-    return contract(psi, psi)
+function LinearAlgebra.norm(psi::Mps{<:Number})
+    return real(contract(psi, psi))
 end
 
 """

@@ -46,7 +46,7 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, max_m::Int, algorithm::String="DMRG1"
     # Compute energy of state and variance at each sweep. Iteration 1 is just
     # the computation of the energy and the variance.
     α = 1e-6
-    E = [expected(H, psi)]
+    E = [real(expected(H, psi))]
     var = [m_variance(H, psi)]
     it = 2
     var_is_stuck = false
@@ -349,7 +349,8 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
     # last sweep had the opposite sense.
-    E = sense == +1 ? sum(Re[1].*Le[2]) : sum(Re[psi.L-1].*Le[psi.L])
+    E = sense == +1 ?
+        sum(real(Re[1].*Le[2])) : sum(real(Re[psi.L-1].*Le[psi.L]))
 
     # Order of sites to do the sweep.
     sweep_sites = sense == +1 ? (1:psi.L-1) : reverse(2:psi.L)
@@ -366,7 +367,7 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
         update_lr_envs_3s!(psi, i, Mi, H, Le, Re, m, α, sense)
 
         # Compute new energy and update α.
-        E = sense == +1 ? sum(Re[i].*Le[i+1]) : sum(Re[i-1].*Le[i])
+        E = sense == +1 ? sum(real(Re[i].*Le[i+1])) : sum(real(Re[i-1].*Le[i]))
         delta_E = E-E1
         if -delta_E/delta_E1 > 0.3/log(m)
             α /= 2.
