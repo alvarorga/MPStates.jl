@@ -20,7 +20,7 @@ struct Mps{T<:Number}
 end
 
 """
-    init_mps(T::Type, L::Int, name::String, d::Int=2)
+    init_mps(T::Type, L::Int, name::String, d0::Int=2)
 
 Initialize an Mps in left canonical form.
 
@@ -28,11 +28,12 @@ Initialize an Mps in left canonical form.
 - `T::Type`: type of the Mps.
 - `L::Int`: Mps's length.
 - `name::String`: name of the Mps. Examples: "GHZ", "W", "product", "random",
-    "full".
+    "full", "AKLT".
 - `d::Int=2`: physical dimension.
 """
-function init_mps(T::Type, L::Int, name::String, d::Int=2)
+function init_mps(T::Type, L::Int, name::String, d0::Int=2)
     M = Vector{Array{T, 3}}()
+    d = d0
     # Build basis for constructing states.
     if name == "product"
         M1 = zeros(T, 1, d, 1)
@@ -68,6 +69,21 @@ function init_mps(T::Type, L::Int, name::String, d::Int=2)
         M1 = ones(T, 1, d, 1)
         Mi = ones(T, 1, d, 1)
         Mend = ones(T, 1, d, 1)
+    elseif name == "AKLT"
+        d = 3
+        M1 = zeros(T, 1, d, 2)
+        M1[1, 1, 1] = one(T)/sqrt(3)
+        M1[1, 2, 2] = one(T)
+        M1[1, 3, 1] = sqrt(2/3)
+        Mi = zeros(T, 2, d, 2)
+        Mi[2, 1, 1] = sqrt(2/3)
+        Mi[1, 2, 1] = -one(T)/sqrt(3)
+        Mi[2, 2, 2] = one(T)/sqrt(3)
+        Mi[1, 3, 2] = -sqrt(2/3)
+        Mend = zeros(T, 2, d, 1)
+        Mend[1, 1, 1] = one(T)/sqrt(3)
+        Mend[2, 2, 1] = one(T)/sqrt(3)
+        Mend[1, 3, 1] = one(T)/sqrt(3)
     end
 
     # Join all tensors in a vector.
@@ -85,7 +101,7 @@ end
 """
     init_test_mps(name::String)
 
-Initialize an Mps used for testing routines. All test Mps have L=6, d=2.
+Initialize an Mps used for testing routines. All test Mps have L=6.
 
 # Arguments:
 - `name::String`: valid are "rtest1", "rtest2", "ctest1", "ctest2" where the
@@ -96,6 +112,8 @@ Shape of test states:
 - "rtest2": (2/3|01> - 2/3|10> + 1/3|11>)(0.8|1111> + 0.6|1110>)
 - "ctest1": (i/3|100> - 2/3|010> + 2i/3|001>)(0.8|111> - 0.6i|101>)
 - "ctest2": (2i/3|01> - 2/3|10> + i/3|11>)(0.8i|1111> + 0.6|1110>)
+- "rtest3": 1/6*(|000> - |+++> + |--0> - |0+-> + |0++> - |-+0>)
+               *(|000> - |+++> + |--0> - |0+-> + |0++> - |-+0>)
 """
 function init_test_mps(name::String)
     if name[1] == 'r'
@@ -108,9 +126,10 @@ function init_test_mps(name::String)
 
     M = Vector{Array{T, 3}}()
     L = 6
-    d = 2
+    d = -1
     # Build basis for constructing states.
     if name == "rtest1"
+        d = 2
         M1 = zeros(T, 1, 2, 2)
         M1[1, 1, 1] = 1.
         M1[1, 2, 2] = 1/3
@@ -129,6 +148,7 @@ function init_test_mps(name::String)
         M6 = zeros(T, 2, 2, 1)
         M6[2, 2, 1] = 1
     elseif name == "rtest2"
+        d = 2
         M1 = zeros(T, 1, 2, 2)
         M1[1, 1, 1] = -4/3
         M1[1, 2, 2] = -2/3
@@ -147,6 +167,7 @@ function init_test_mps(name::String)
         M6[1, 1, 1] = 0.6
         M6[1, 2, 1] = 0.8
     elseif name == "ctest1"
+        d = 2
         M1 = zeros(T, 1, 2, 2)
         M1[1, 1, 1] = 1.
         M1[1, 2, 2] = complex(0., 1/3)
@@ -165,6 +186,7 @@ function init_test_mps(name::String)
         M6 = zeros(T, 2, 2, 1)
         M6[2, 2, 1] = 1
     elseif name == "ctest2"
+        d = 2
         M1 = zeros(T, 1, 2, 2)
         M1[1, 1, 1] = -4/3
         M1[1, 2, 2] = -2/3
@@ -182,6 +204,26 @@ function init_test_mps(name::String)
         M6 = zeros(T, 2, 2, 1)
         M6[1, 1, 1] = 0.6
         M6[1, 2, 1] = complex(0., 0.8)
+    elseif name == "rtest3"
+        d = 3
+        M1 = zeros(T, 1, 3, 3)
+        M1[1, 1, 1] = sqrt(1/6)
+        M1[1, 2, 3] = sqrt(1/6)
+        M1[1, 3, 2] = -sqrt(1/6)
+        M2 = zeros(T, 3, 3, 3)
+        M2[1, 1, 1] = 1.
+        M2[3, 2, 1] = 1.
+        M2[1, 3, 1] = -1.
+        M2[2, 3, 2] = 1.
+        M2[3, 3, 3] = 1.
+        M3 = zeros(T, 3, 3, 1)
+        M3[3, 1, 1] = -1.
+        M3[1, 2, 1] = 1.
+        M3[2, 3, 1] = 1.
+        M3[3, 3, 1] = 1.
+        M4 = M1
+        M5 = M2
+        M6 = M3
     else
         throw("State '$name' not valid.")
     end
