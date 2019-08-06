@@ -21,18 +21,27 @@ W = init_mps(Float64, L, "W")
 GHZ = init_mps(Float64, L, "GHZ")
 product = init_mps(Float64, L, "product")
 
-# TODO: add testing Mps.
+# Make a spin Hamiltonian to test.
+Hs = init_mpo(Float64, L, 3)
+Jzz = diagm(1 => ones(L-1))
+Jpm = 0.3*Symmetric(diagm(1 => ones(L-1)))
+add_ops!(Hs, "Sz", "Sz", Jzz)
+add_ops!(Hs, "S+", "S-", Jpm)
+
+rtest3 = MPStates.init_test_mps("rtest3")
 
 @testset "expectation value of Mps" begin
     @test expected(H, product) ≈ 0. atol=1e-15
     @test expected(H, GHZ) ≈ U/2*(L-1)
     @test expected(H, W) ≈ 2t*(L-1)/L
+    @test expected(Hs, rtest3) ≈ 2/3 - 1/36 - 0.3*8/3
 end
 
 @testset "expectation value of squared Mps" begin
     @test MPStates.norm_of_apply(H, product) ≈ 0. atol=1e-15
     @test MPStates.norm_of_apply(H, GHZ) ≈ U^2/2*(L-1)^2
     @test MPStates.norm_of_apply(H, W) ≈ t^2*(4L-6)/L
+    @test MPStates.norm_of_apply(Hs, rtest3) ≈ norm(apply!(Hs, rtest3))
 end
 
 @testset "variance of Mpo" begin
