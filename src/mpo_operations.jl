@@ -86,13 +86,13 @@ function str_to_op(str_op::String, d::Int=0)
                 [0. 0. 0.];
                 [0. 0. 1.]]
     elseif str_op == "S+"
-        return [[0. 0. 0.];
-                [sqrt(2) 0. 0.];
-                [0. sqrt(2) 0.]]
-    elseif str_op == "S-"
         return [[0. sqrt(2) 0.];
                 [0. 0. sqrt(2)];
                 [0. 0. 0.]]
+    elseif str_op == "S-"
+        return [[0. 0. 0.];
+                [sqrt(2) 0. 0.];
+                [0. sqrt(2) 0.]]
     # General identity matrix with the same physical dimensions as the Mpo.
     elseif str_op == "Id"
         return Matrix{Float64}(I, d, d)

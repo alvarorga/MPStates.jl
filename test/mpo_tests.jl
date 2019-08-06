@@ -6,6 +6,7 @@ rtest1 = MPStates.init_test_mps("rtest1")
 ctest1 = MPStates.init_test_mps("ctest1")
 rtest2 = MPStates.init_test_mps("rtest2")
 ctest2 = MPStates.init_test_mps("ctest2")
+rtest3 = MPStates.init_test_mps("rtest3")
 
 @testset "initialize empty Mpo" begin
     L = 6
