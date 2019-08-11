@@ -127,11 +127,9 @@ Propagate the tensor L through the tensors A, M, conj(B).
 """
 function prop_right3(L::Array{T, 3}, A::Array{T, 3}, M::Array{T, 4},
                      B::Array{T, 3}) where T<:Number
-    @tensoropt begin
-        L1[l1, l2, s2, c] := L[l1, l2, l3]*conj(B[l3, s2, c])
-        L2[l1, s1, b, c] := L1[l1, l2, s2, c]*M[l2, s1, s2, b]
-        new_L[a, b, c] := L2[l1, s1, b, c]*A[l1, s1, a]
-    end
+    @tensoropt L1[l1, l2, s2, c] := L[l1, l2, l3]*conj(B[l3, s2, c])
+    @tensoropt L2[l1, s1, b, c] := L1[l1, l2, s2, c]*M[l2, s1, s2, b]
+    @tensoropt new_L[a, b, c] := L2[l1, s1, b, c]*A[l1, s1, a]
     return new_L
 end
 
@@ -152,12 +150,10 @@ Propagate the tensor L through the tensors A, M1, M2, conj(B).
 """
 function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
                      M2::Array{T, 4}, B::Array{T, 3}) where T<:Number
-    @tensoropt begin
-        L1[l1, l2, l3, s3, d] := L[l1, l2, l3, l4]*conj(B[l4, s3, d])
-        L2[l1, l2, s2, c, d] := L1[l1, l2, l3, s3, d]*M2[l3, s2, s3, c]
-        L3[l1, s1, b, c, d] := L2[l1, l2, s2, c, d]*M1[l2, s1, s2, b]
-        new_L[a, b, c, d] := L3[l1, s1, b, c, d]*A[l1, s1, a]
-    end
+    @tensoropt L1[l1, l2, l3, s3, d] := L[l1, l2, l3, l4]*conj(B[l4, s3, d])
+    @tensoropt L2[l1, l2, s2, c, d] := L1[l1, l2, l3, s3, d]*M2[l3, s2, s3, c]
+    @tensoropt L3[l1, s1, b, c, d] := L2[l1, l2, s2, c, d]*M1[l2, s1, s2, b]
+    @tensoropt new_L[a, b, c, d] := L3[l1, s1, b, c, d]*A[l1, s1, a]
     return new_L
 end
 
@@ -221,12 +217,10 @@ Propagate the tensor R through the tensors A, M1, M2, conj(B).
 """
 function prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
                     B::Array{T, 3}, R::Array{T, 4}) where T<:Number
-    @tensoropt begin
-        R1[a, s1, r2, r3, r4] := A[a, s1, r1]*R[r1, r2, r3, r4]
-        R2[a, b, s2, r3, r4] := R1[a, s1, r2, r3, r4]*M1[b, s1, s2, r2]
-        R3[a, b, c, s3, r4] := R2[a, b, s2, r3, r4]*M2[c, s2, s3, r3]
-        new_R[a, b, c, d] := R3[a, b, c, s3, r4]*conj(B[d, s3, r4])
-    end
+    @tensoropt R1[a, s1, r2, r3, r4] := A[a, s1, r1]*R[r1, r2, r3, r4]
+    @tensoropt R2[a, b, s2, r3, r4] := R1[a, s1, r2, r3, r4]*M1[b, s1, s2, r2]
+    @tensoropt R3[a, b, c, s3, r4] := R2[a, b, s2, r3, r4]*M2[c, s2, s3, r3]
+    @tensoropt new_R[a, b, c, d] := R3[a, b, c, s3, r4]*conj(B[d, s3, r4])
     return new_R
 end
 
@@ -267,10 +261,8 @@ Propagate the tensor R through the tensors W, conj(M) for the DMRG3S algorithm.
 """
 function prop_left_subexp(W::Array{T, 4}, M::Array{T, 3},
                           R::Array{T, 3}) where T<:Number
-    @tensoropt begin
-        R1[r1, r2, s2, l3] := R[r1, r2, r3]*conj(M[l3, s2, r3])
-        P[s1, r1, l2, l3] := R1[r1, r2, s2, l3]*W[l2, s1, s2, r2]
-    end
+    @tensoropt R1[r1, r2, s2, l3] := R[r1, r2, r3]*conj(M[l3, s2, r3])
+    @tensoropt P[s1, r1, l2, l3] := R1[r1, r2, s2, l3]*W[l2, s1, s2, r2]
     return P
 end
 
