@@ -258,66 +258,66 @@ end
     # Test with real symmetric Mpo (or complex with zero imaginary part).
     Op = init_mpo(Float64, L, d)
     add_ops!(Op, "c+", "c", J, ferm_op="Z")
-    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-8
 
     Op = init_mpo(Float64, L, d)
     add_ops!(Op, "c+", "c", J.^3)
-    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-8
 
     Op = init_mpo(Float64, L, d)
     add_ops!(Op, "n", "n", J)
-    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-15
-    @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-15
+    @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-8
+    @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-8
 
     cOp = init_mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", convert.(ComplexF64, J), ferm_op="Z")
-    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
-    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     # Reduce error tolerance here because errors grow a lot with random states.
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
     cOp = init_mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", convert.(ComplexF64, tan.(J)))
-    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
-    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
     cOp = init_mpo(ComplexF64, L, d)
     add_ops!(cOp, "n", "n", convert.(ComplexF64, tan.(J)))
-    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
-    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
     # Test with complex hermitian Mpo.
     cOp = init_mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", cJ, ferm_op="Z")
-    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
-    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
     cOp = init_mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", cJ.^2)
-    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
-    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
     cOp = init_mpo(ComplexF64, L, d)
     add_ops!(cOp, "n", "n", cJ)
-    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-15
-    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-15
+    @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
+    @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
