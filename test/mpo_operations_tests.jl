@@ -10,25 +10,25 @@ U = 1.5
 J = t .* Symmetric(diagm(1 => ones(L-1)))
 V = U .* diagm(1 => ones(L-1))
 
-H = init_mpo(Float64, L, d)
+H = Mpo(L, d)
 # Add fermionic operators.
 add_ops!(H, "c+", "c", J, ferm_op="Z")
 # Add interaction terms.
 add_ops!(H, "n", "n", V)
 
 # Define "W", "GHZ", and "product" states.
-W = init_mps(Float64, L, "W")
-GHZ = init_mps(Float64, L, "GHZ")
-product = init_mps(Float64, L, "product")
+W = Mps(L, "W")
+GHZ = Mps(L, "GHZ")
+product = Mps(L, "product")
 
 # Make a spin Hamiltonian to test.
-Hs = init_mpo(Float64, L, 3)
+Hs = Mpo(L, 3)
 Jzz = diagm(1 => ones(L-1))
 Jpm = 0.3*Symmetric(diagm(1 => ones(L-1)))
 add_ops!(Hs, "Sz", "Sz", Jzz)
 add_ops!(Hs, "S+", "S-", Jpm)
 
-rtest3 = MPStates.init_test_mps("rtest3")
+rtest3 = MPStates.testMps("rtest3")
 
 @testset "expectation value of Mps" begin
     @test expected(H, product) ≈ 0. atol=1e-15
@@ -56,10 +56,10 @@ end
     J[1, 2] = 1.
     J[4, 5] = 1.
 
-    rtest1 = MPStates.init_test_mps("rtest1")
-    ctest2 = MPStates.init_test_mps("ctest2")
+    rtest1 = MPStates.testMps("rtest1")
+    ctest2 = MPStates.testMps("ctest2")
 
-    Op = init_mpo(Float64, L, 2)
+    Op = Mpo(L, 2)
     add_ops!(Op, "c+", "c", J, ferm_op="Z")
 
     apply!(Op, rtest1)
@@ -72,7 +72,7 @@ end
     @test expected(rtest1, "n", 5) ≈ 4/9*0.64
     @test expected(rtest1, "n", 6) ≈ 4/9
 
-    cOp = init_mpo(ComplexF64, L, 2)
+    cOp = Mpo(ComplexF64, L, 2)
     add_ops!(cOp, "c+", "c", convert.(ComplexF64, J), ferm_op="Z")
 
     apply!(cOp, ctest2)

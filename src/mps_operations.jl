@@ -388,7 +388,7 @@ function read_mps(filename::String)
     is_complex = !(T <: Real)
 
     # Start Mps as full and then replace tensors.
-    psi = init_mps(T, L, "full")
+    psi = Mps(T, L, "full")
     for i=1:psi.L
         if !is_complex
             psi.M[i] = h5read(filename, "M$i")

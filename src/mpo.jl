@@ -1,5 +1,4 @@
 export Mpo,
-       init_mpo,
        add_ops!
 
 """
@@ -18,13 +17,14 @@ struct Mpo{T<:Number}
     d::Int
 end
 
-"""
-    init_mpo(T::Type, L::Int, d::Int)
+Mpo(L::Int, d::Int) = Mpo(Float64, L, d)
 
-Initialize an Mpo of type `T` and length `L` with bond dimension `d` as an empty
-operator.
 """
-function init_mpo(T::Type, L::Int, d::Int)
+    Mpo(::Type{T}, L::Int, d::Int) where T<:Number
+
+Create an empty Mpo of length `L` with bond dimension `d`.
+"""
+function Mpo(T::Type, L::Int, d::Int)
     Id = Matrix{T}(I, d, d)
     W = Vector{Array{T, 4}}(undef, L)
     W1 = zeros(T, 1, d, d, 2)
@@ -178,13 +178,13 @@ function add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
 end
 
 """
-    init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
+    Mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
 
 Initialize and Mpo with bond dimension `d=2` with hopping matrix `J` and
 an interaction matrix `V = \\sum V_{ij} n_i n_j`. The statistics can be either
 fermionic or bosonic.
 """
-function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
+function Mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
     size(J) == (L, L) || throw("J has not the correct dimensions.")
     size(V) == (L, L) || throw("V has not the correct dimensions.")
 
@@ -286,6 +286,7 @@ function init_mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) wh
     return Mpo(W, L, 2)
 end
 
+import Base.display
 function Base.display(O::Mpo{T}) where T<:Number
     println("MPO:")
     println("   Type: $(eltype(O.W[1]))")

@@ -2,18 +2,18 @@ using Test, MPStates, LinearAlgebra, Random
 
 @testset "Operations with Mpo" begin
 # Initialize testing Mps.
-rtest1 = MPStates.init_test_mps("rtest1")
-ctest1 = MPStates.init_test_mps("ctest1")
-rtest2 = MPStates.init_test_mps("rtest2")
-ctest2 = MPStates.init_test_mps("ctest2")
-rtest3 = MPStates.init_test_mps("rtest3")
+rtest1 = MPStates.testMps("rtest1")
+ctest1 = MPStates.testMps("ctest1")
+rtest2 = MPStates.testMps("rtest2")
+ctest2 = MPStates.testMps("ctest2")
+rtest3 = MPStates.testMps("rtest3")
 
 @testset "initialize empty Mpo" begin
     L = 6
     d = 2
-    Op = init_mpo(Float64, L, d)
-    cOp = init_mpo(ComplexF64, L, d)
-    sOp = init_mpo(Float64, L, 3)
+    Op = Mpo(L, d)
+    cOp = Mpo(ComplexF64, L, d)
+    sOp = Mpo(L, 3)
 
     @test expected(Op, rtest1) ≈ 0. atol=1e-15
     @test expected(Op, rtest2) ≈ 0. atol=1e-15
@@ -26,7 +26,7 @@ end
     L = 6
     d = 2
 
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     weights = cos.(1:L)
     add_ops!(Op, "n", weights)
 
@@ -39,7 +39,7 @@ end
     @test expected(Op, rtest1) ≈ res1
     @test expected(Op, rtest2) ≈ res2
 
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     cweights = complex.(tan.(1:L), sin.(1:L))
     add_ops!(cOp, "n", cweights)
 
@@ -55,7 +55,7 @@ end
     # Test with spin states.
     d = 3
 
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     weights1 = cos.(1:L)
     weights2 = tan.(1:L)
     add_ops!(Op, "Sz", weights1)
@@ -77,7 +77,7 @@ end
     V = reshape(sin.(1:L^2), L, L)
 
     # Tests with real Mps.
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "n", "n", V)
 
     res1 = 0.
@@ -90,7 +90,7 @@ end
     @test expected(Op, rtest2) ≈ res2
 
     # Tests with complex Mps.
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     cV = complex.(reshape(sin.(1:L^2), L, L), reshape(cos.(1:L^2), L, L))
     add_ops!(cOp, "n", "n", cV)
 
@@ -113,7 +113,7 @@ end
     J = reshape(tan.(1:L^2).^3, L, L)
 
     # Test with real Mps.
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "n", "n", V)
     add_ops!(Op, "c+", "c", J, ferm_op="Z")
 
@@ -129,7 +129,7 @@ end
     @test expected(Op, rtest2) ≈ res2
 
     # Tests with complex Mps.
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     cV = complex.(reshape(sin.(1:L^2).^2, L, L), reshape(sin.(1:L^2), L, L))
     cJ = complex.(reshape(tan.(1:L^2).^3, L, L), reshape(tan.(1:L^2), L, L))
     add_ops!(cOp, "n", "n", cV)
@@ -155,7 +155,7 @@ end
     J = reshape(tan.(1:L^2), L, L)
 
     # Test with real Mps.
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "b+", "b", J)
 
     res1 = 0.
@@ -168,7 +168,7 @@ end
     @test expected(Op, rtest2) ≈ res2
 
     # Tests with complex Mps.
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     cJ = complex.(reshape(sin.(1:L^2).^2, L, L), reshape(sin.(1:L^2), L, L))
     add_ops!(cOp, "b+", "b", cJ)
 
@@ -190,7 +190,7 @@ end
     J = reshape(tan.(1:L^2).*cos.(1:L^2), L, L)
 
     # Test with real Mps.
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "c+", "c", J, ferm_op="Z")
 
     res1 = 0.
@@ -203,7 +203,7 @@ end
     @test expected(Op, rtest2) ≈ res2
 
     # Tests with complex Mps.
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     cJ = complex.(reshape(tan.(1:L^2).^2, L, L), reshape(sin.(1:L^2), L, L))
     add_ops!(cOp, "c+", "c", cJ, ferm_op="Z")
 
@@ -226,7 +226,7 @@ end
     Vpm = reshape(tan.(1:L^2).^3, L, L)
 
     # Test with real Mps.
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "Sz", "Sz", Vzz)
     add_ops!(Op, "S+", "S-", Vpm)
 
@@ -245,10 +245,10 @@ end
     # Let's create some random complex states to make sure that our premade
     # states have nothing in particular that could oversee some bug.
     Random.seed!(0)
-    rtest4 = init_mps(Float64, L, "random")
-    rtest5 = init_mps(Float64, L, "random")
-    ctest4 = init_mps(ComplexF64, L, "random")
-    ctest5 = init_mps(ComplexF64, L, "random")
+    rtest4 = randomMps(L)
+    rtest5 = randomMps(L)
+    ctest4 = randomMps(ComplexF64, L)
+    ctest5 = randomMps(ComplexF64, L)
 
     # Operator matrices.
     J = Symmetric(reshape(tan.(1:L^2).*cos.(1:L^2), L, L))
@@ -256,28 +256,28 @@ end
                             reshape(sin.(1:L^2), L, L)))
 
     # Test with real symmetric Mpo (or complex with zero imaginary part).
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "c+", "c", J, ferm_op="Z")
     @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-8
 
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "c+", "c", J.^3)
     @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-8
 
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "n", "n", J)
     @test imag(expected(Op, rtest1)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest2)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest4)) ≈ 0. atol=1e-8
     @test imag(expected(Op, rtest5)) ≈ 0. atol=1e-8
 
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", convert.(ComplexF64, J), ferm_op="Z")
     @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
@@ -285,14 +285,14 @@ end
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", convert.(ComplexF64, tan.(J)))
     @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     add_ops!(cOp, "n", "n", convert.(ComplexF64, tan.(J)))
     @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
@@ -300,21 +300,21 @@ end
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
     # Test with complex hermitian Mpo.
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", cJ, ferm_op="Z")
     @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     add_ops!(cOp, "c+", "c", cJ.^2)
     @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest4)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest5)) ≈ 0. atol=1e-8
 
-    cOp = init_mpo(ComplexF64, L, d)
+    cOp = Mpo(ComplexF64, L, d)
     add_ops!(cOp, "n", "n", cJ)
     @test imag(expected(cOp, ctest1)) ≈ 0. atol=1e-8
     @test imag(expected(cOp, ctest2)) ≈ 0. atol=1e-8
@@ -323,13 +323,13 @@ end
 
     # Test with spin operators.
     d = 3
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "Sz", "Sz", J)
     @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "S+", "S-", J.^2)
     @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15
-    Op = init_mpo(Float64, L, d)
+    Op = Mpo(L, d)
     add_ops!(Op, "Sz", "Sz", J)
     add_ops!(Op, "S-", "S+", tan.(J))
     @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15

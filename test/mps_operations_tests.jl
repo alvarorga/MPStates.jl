@@ -1,11 +1,11 @@
 using Test, LinearAlgebra, MPStates
 
 @testset "Operations with Mps" begin
-rtest1 = MPStates.init_test_mps("rtest1")
-ctest1 = MPStates.init_test_mps("ctest1")
-rtest2 = MPStates.init_test_mps("rtest2")
-ctest2 = MPStates.init_test_mps("ctest2")
-rtest3 = MPStates.init_test_mps("rtest3")
+rtest1 = MPStates.testMps("rtest1")
+ctest1 = MPStates.testMps("ctest1")
+rtest2 = MPStates.testMps("rtest2")
+ctest2 = MPStates.testMps("ctest2")
+rtest3 = MPStates.testMps("rtest3")
 @testset "measure occupation at one site" begin
     @test expected(rtest1, "n", 1) ≈ 1/9
     @test expected(rtest1, "n", 2) ≈ 4/9
@@ -161,14 +161,14 @@ end
 
 @testset "contraction of two MPS" begin
     L = 6
-    GHZ = init_mps(Float64, L, "GHZ")
-    W = init_mps(Float64, L, "W")
-    full = init_mps(Float64, L, "full")
-    product = init_mps(Float64, L, "product")
-    cGHZ = init_mps(ComplexF64, L, "GHZ")
-    cW = init_mps(ComplexF64, L, "W")
-    cfull = init_mps(ComplexF64, L, "full")
-    cproduct = init_mps(ComplexF64, L, "product")
+    GHZ = Mps(L, "GHZ")
+    W = Mps(L, "W")
+    full = Mps(L, "full")
+    product = Mps(L, "product")
+    cGHZ = Mps(ComplexF64, L, "GHZ")
+    cW = Mps(ComplexF64, L, "W")
+    cfull = Mps(ComplexF64, L, "full")
+    cproduct = Mps(ComplexF64, L, "product")
     @test contract(GHZ, W) ≈ 0. atol=1e-15
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
     @test contract(GHZ, product) ≈ 1/sqrt(2)
@@ -194,11 +194,11 @@ end
 
 @testset "norm of a MPS" begin
     L = 6
-    GHZ = init_mps(Float64, L, "GHZ")
-    W = init_mps(Float64, L, "W")
-    full = init_mps(Float64, L, "full")
-    product = init_mps(Float64, L, "product")
-    AKLT = init_mps(Float64, L, "AKLT")
+    GHZ = Mps(L, "GHZ")
+    W = Mps(L, "W")
+    full = Mps(L, "full")
+    product = Mps(L, "product")
+    AKLT = Mps(L, "AKLT")
     @test norm(GHZ) ≈ 1.
     @test norm(full) ≈ 1.
     @test norm(product) ≈ 1.
@@ -213,10 +213,10 @@ end
 
 @testset "schmidt decomposition" begin
     L = 4
-    GHZ = init_mps(Float64, L, "GHZ")
+    GHZ = Mps(L, "GHZ")
     @test MPStates.schmidt_decomp(GHZ, 1) ≈ [1/sqrt(2), 1/sqrt(2)]
     @test MPStates.schmidt_decomp(GHZ, 2) ≈ [1/sqrt(2), 1/sqrt(2)]
-    W = init_mps(Float64, L, "W")
+    W = Mps(L, "W")
     @test MPStates.schmidt_decomp(W, 1) ≈ [sqrt(3)/2, 0.5]
     @test MPStates.schmidt_decomp(W, 2) ≈ [1/sqrt(2), 1/sqrt(2)]
     @test MPStates.schmidt_decomp(rtest1, 1) ≈ [2sqrt(2)/3, 1/3]
@@ -261,10 +261,10 @@ end
 
 @testset "entanglement entropy" begin
     L = 4
-    GHZ = init_mps(Float64, L, "GHZ")
+    GHZ = Mps(L, "GHZ")
     @test ent_entropy(GHZ, 1) ≈ 1/sqrt(2)
     @test ent_entropy(GHZ, 2) ≈ 1/sqrt(2)
-    W = init_mps(Float64, L, "W")
+    W = Mps(L, "W")
     @test ent_entropy(W, 1) ≈ 0.5 - sqrt(3)/2*log2(sqrt(3)/2)
     @test ent_entropy(W, 2) ≈ 1/sqrt(2)
     @test ent_entropy(rtest1, 1) ≈ -2sqrt(2)/3*log2(2sqrt(2)/3) - 1/3*log2(1/3)
@@ -307,7 +307,7 @@ end
 
 @testset "enlargement of bond dimension of MPS" begin
     L = 10
-    GHZ = init_mps(Float64, L, "GHZ")
+    GHZ = Mps(L, "GHZ")
     enlarge_bond_dimension!(GHZ, 5)
     @test size(GHZ.M[1], 1) == 1
     @test size(GHZ.M[1], 3) == 2
@@ -322,7 +322,7 @@ end
     @test size(GHZ.M[L], 1) == 2
     @test size(GHZ.M[L], 3) == 1
     # Check that the properties of the Mps are left intact.
-    full = init_mps(Float64, L, "full")
+    full = Mps(L, "full")
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
     enlarge_bond_dimension!(full, 11)
     @test contract(GHZ, full) ≈ 1/sqrt(2^(L-1))
@@ -366,7 +366,7 @@ end
 
 @testset "save and read Mps in hdf5 format" for T in [Float64, ComplexF64]
     L = 10
-    GHZ = init_mps(T, L, "GHZ")
+    GHZ = Mps(T, L, "GHZ")
 
     filename = "foo.h5"
     # Remove file if previous test crashed and file was not removed.

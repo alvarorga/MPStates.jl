@@ -1,5 +1,5 @@
 export Mps,
-       init_mps,
+       randomMps,
        show_bond_dims
 
 """
@@ -18,19 +18,22 @@ struct Mps{T<:Number}
     d::Int
 end
 
-"""
-    init_mps(T::Type, L::Int, name::String, d0::Int=2)
+Mps(L::Int, name::String, d0::Int=2) = Mps(Float64, L, name, d0)
+randomMps(L::Int, d::Int=2, m::Int=2) = randomMps(Float64, L, d, m)
 
-Initialize an Mps in left canonical form.
+"""
+    Mps(::Type{T}, L::Int, name::String, d0::Int=2) where T<:Number
+
+Initialize an Mps in left canonical form of the kinds: GHZ, W, product state
+(all zero entries), full, and AKLT.
 
 # Arguments:
 - `T::Type`: type of the Mps.
 - `L::Int`: Mps's length.
-- `name::String`: name of the Mps. Examples: "GHZ", "W", "product", "random",
-    "full", "AKLT".
-- `d::Int=2`: physical dimension.
+- `name::String`: can be: "GHZ", "W", "product", "full", "AKLT".
+- `d0::Int=2`: physical dimension.
 """
-function init_mps(T::Type, L::Int, name::String, d0::Int=2)
+function Mps(::Type{T}, L::Int, name::String, d0::Int=2) where T<:Number
     M = Vector{Array{T, 3}}()
     d = d0
     # Build basis for constructing states.
@@ -60,10 +63,6 @@ function init_mps(T::Type, L::Int, name::String, d0::Int=2)
         Mend = zeros(T, 2, 2, 1)
         Mend[2, 1, 1] = one(T)
         Mend[1, 2, 1] = one(T)
-    elseif name == "random"
-        M1 = rand(T, 1, d, 2)
-        Mi = rand(T, 2, d, 2)
-        Mend = rand(T, 2, d, 1)
     elseif name == "full"
         M1 = ones(T, 1, d, 1)
         Mi = ones(T, 1, d, 1)
@@ -98,9 +97,37 @@ function init_mps(T::Type, L::Int, name::String, d0::Int=2)
 end
 
 """
-    init_test_mps(name::String)
+    randomMps(::Type{T}, L::Int, d::Int=2, m::Int=2) where T<:Number
 
-Initialize an Mps used for testing routines. All test Mps have L=6.
+Make a random Mps in left canonical form.
+
+# Arguments:
+- `T::Type`: type of the Mps.
+- `L::Int`: Mps's length.
+- `d::Int=2`: physical dimension.
+- `m::Int=2`: maximum bond dimension.
+"""
+function randomMps(::Type{T}, L::Int, d::Int=2, m::Int=2) where T<:Number
+    M = Vector{Array{T, 3}}()
+
+    # Make a vector of random tensors.
+    push!(M, rand(T, 1, d, bond_dimension_with_m(L, 2, m, d)))
+    for i=2:L-1
+        push!(M, rand(T, bond_dimension_with_m(L, i, m, d),
+                         d,
+                         bond_dimension_with_m(L, i+1, m, d)))
+    end
+    push!(M, rand(T, bond_dimension_with_m(L, L, m, d), d, 1))
+
+    mps = Mps(M, L, d)
+    make_left_canonical!(mps)
+    return mps
+end
+
+"""
+    testMps(name::String)
+
+Make several Mps used for testing routines. All test Mps have L=6.
 
 # Arguments:
 - `name::String`: valid are "rtest1", "rtest2", "ctest1", "ctest2" where the
@@ -114,7 +141,7 @@ Shape of test states:
 - "rtest3": 1/6*(|000> - |+++> + |--0> - |0+-> + |0++> - |-+0>)
                *(|000> - |+++> + |--0> - |0+-> + |0++> - |-+0>)
 """
-function init_test_mps(name::String)
+function testMps(name::String)
     if name[1] == 'r'
         T = Float64
     elseif name[1] == 'c'

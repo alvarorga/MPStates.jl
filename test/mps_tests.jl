@@ -27,7 +27,7 @@ end
 @testset "Initialization of the Mps class" begin
 @testset "make tensor state left & right canonical" begin
     # Test if state is initialized in left canonical form if it is normalized.
-    rtest1 = MPStates.init_test_mps("rtest1")
+    rtest1 = MPStates.testMps("rtest1")
     @test is_left_canonical(rtest1.M)
     @test MPStates.norm(rtest1) ≈ 1.
     MPStates.make_right_canonical!(rtest1)
