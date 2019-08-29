@@ -1,6 +1,6 @@
-#
-# Operations between MPS and MPO.
-#
+export expected,
+       m_variance,
+       apply!
 
 """
     expected(Op::Mpo{T}, psi::Mps{T}) where T<:Number

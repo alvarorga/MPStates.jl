@@ -1,7 +1,6 @@
-#
-# MPS structure.
-#
-
+export Mps,
+       init_mps,
+       show_bond_dims
 
 """
     Mps{T<:Number}

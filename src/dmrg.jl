@@ -1,6 +1,5 @@
-#
-# DMRG algorithms.
-#
+export MinimizeOpts,
+       minimize!
 
 """
 Options for the DMRG minimization algorithm.

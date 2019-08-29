@@ -1,7 +1,3 @@
-#
-# Cache for intermediate results.
-#
-
 struct Cache{T<:Number}
     elts::Vector{AbstractArray{T}}
 end

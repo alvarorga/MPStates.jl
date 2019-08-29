@@ -1,7 +1,3 @@
-#
-# Operations between tensors.
-#
-
 """
     prop_qr(R::Array{T, 2}, A::Array{T, 3}, return_Q=true) where T<:Number
 

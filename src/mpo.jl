@@ -1,7 +1,6 @@
-#
-# MPO structure.
-#
-
+export Mpo,
+       init_mpo,
+       add_ops!
 
 """
     Mpo{T<:Number}

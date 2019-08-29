@@ -1,6 +1,12 @@
-#
-# Operations between MPSs.
-#
+export measure,
+       contract,
+       norm,
+       ent_entropy,
+       enlarge_bond_dimension!,
+       svd_truncate!,
+       simplify!,
+       save_mps,
+       read_mps
 
 """
     expected(psi::Mps{T}, op_i::AbstractMatrix{<:Number}, i::Int) where T<:Number
