@@ -61,6 +61,19 @@ end
     @test size(SVt, 1) < 12
     rU = reshape(U, 12, size(U, 3))
     @test rU'*rU ≈ Matrix(I, size(U, 3), size(U, 3))
+
+    # SVD with dimensional cutoff.
+    dimcutoff = 5
+    U, SVt = factorize_svd_right(M, cutoff=1., dimcutoff=dimcutoff,
+                                 normalize_S=false)
+    @test size(U, 1) == 3
+    @test size(U, 2) == 4
+    @test size(U, 3) == dimcutoff
+    @test size(SVt, 2) == 5
+    @test size(SVt, 3) == 3
+    @test size(SVt, 1) == dimcutoff
+    rU = reshape(U, 12, dimcutoff)
+    @test rU'*rU ≈ Matrix(I, dimcutoff, dimcutoff)
 end
 
 @testset "SVD left decomposition" begin
@@ -86,5 +99,18 @@ end
     @test size(Vt, 1) < 12
     rVt = reshape(Vt, size(Vt, 1), 15)
     @test rVt*rVt' ≈ Matrix(I, size(Vt, 1), size(Vt, 1))
+
+    # SVD with dimensional cutoff.
+    dimcutoff = 5
+    US, Vt = factorize_svd_left(M, cutoff=1., dimcutoff=dimcutoff,
+                                normalize_S=false)
+    @test size(US, 1) == 3
+    @test size(US, 2) == 4
+    @test size(US, 3) == dimcutoff
+    @test size(Vt, 2) == 5
+    @test size(Vt, 3) == 3
+    @test size(Vt, 1) == dimcutoff
+    rVt = reshape(Vt, dimcutoff, 15)
+    @test rVt*rVt' ≈ Matrix(I, dimcutoff, dimcutoff)
 end
 end # @testset "Tensor factorizations"
