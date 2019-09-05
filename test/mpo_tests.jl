@@ -334,4 +334,23 @@ end
     add_ops!(Op, "S-", "S+", tan.(J))
     @test imag(expected(Op, rtest3)) ≈ 0. atol=1e-15
 end
+
+@testset "Contraction of bond dimensions of an Mpo" begin
+    L = 10
+    d = 2
+
+    # Build an Mpo with first neighbor interactions, bond dimension cannot be
+    # greater than 4.
+    J = diagm(1 => rand(L-1)) + diagm(-1 => rand(L-1))
+    Op = Mpo(L, d)
+    add_ops!(Op, "b+", "b", J)
+    @test maximum(size.(Op.W, 4)) <= 4
+
+    # Add periodic bond dimensions, this should increase the bond dim to 5.
+    Jpbc = zeros(L, L)
+    Jpbc[1, L] = 1.
+    Jpbc[L, 2] = 3.
+    add_ops!(Op, "b+", "b", Jpbc)
+    @test maximum(size.(Op.W, 4)) <= 6
+end
 end # @testset "Operations with Mpo"

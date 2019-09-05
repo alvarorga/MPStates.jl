@@ -155,11 +155,52 @@ function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
             end
         end
     end
-
-    # TODO: compress the operators of the Mpo to remove unnecessary zeros.
-
+    compress_mpo!(Op)
     return Op
 end
+
+"""
+    compress_mpo!(Op::Mpo{<:Number})
+
+Remove unnecessary bond dimensions in an Mpo.
+"""
+function compress_mpo!(Op::Mpo{<:Number})
+    # Compress the operators of the Mpo to remove unnecessary zeros. We go over
+    # each pair of contiguous tensors, e.g. A and B, with A left of B, and
+    # remove the column A[:, :, :, i] and the row B[i, :, :, :] if both the
+    # row and the column are empty (have zero norm).
+    for i=1:Op.L-1
+        A = Op.W[i]
+        B = Op.W[i+1]
+        to_rm = Int[]
+        for j=1:size(A, 4)
+            if norm(A[:, :, :, j]) < 1e-8 && norm(B[j, :, :, :]) < 1e-8
+                push!(to_rm, j)
+            end
+        end
+        # Make a copy with removed indices and columns.
+        cA = zeros(
+            eltype(A),
+            size(A, 1), size(A, 2), size(A, 3), size(A, 4)-length(to_rm)
+        )
+        cB = zeros(
+            eltype(B),
+            size(B, 1)-length(to_rm), size(B, 2), size(B, 3), size(B, 4)
+        )
+        cont = 1
+        for j=1:size(A, 4)
+            j ∈ to_rm && continue
+            cA[:, :, :, cont] = A[:, :, :, j]
+            cB[cont, :, :, :] = B[j, :, :, :]
+            cont += 1
+        end
+        # Overwrite the original tensors.
+        Op.W[i] = cA
+        Op.W[i+1] = cB
+    end
+    return Op
+end
+
 
 """
     add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
