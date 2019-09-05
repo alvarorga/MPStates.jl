@@ -145,10 +145,8 @@ function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                             sense::Int) where T<:Number
     if sense == +1
-        Mi = reshape(Mi, (size(Le[i], 1)*psi.d, size(Re[i], 1)))
-        Ai, R = qr(Mi)
-        Ai = Matrix(Ai)
-        Ai = reshape(Ai, (size(Le[i], 1), psi.d, size(Ai, 2)))
+        Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
+        Ai, R = factorize_svd_right(Mi, cutoff=0.)
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
         psi.M[i] = Ai
@@ -157,10 +155,8 @@ function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
             Re[i] = absorb_Re(Re[i], R)
         end
     else
-        Mi = reshape(Mi, (size(Le[i], 1), psi.d*size(Re[i], 1)))
-        L, Bi = lq(Mi)
-        Bi = Matrix(Bi)
-        Bi = reshape(Bi, (size(Bi, 1), psi.d, size(Re[i], 1)))
+        Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
+        L, Bi = factorize_svd_left(Mi, cutoff=0.)
 
         # Update left and right environments at Le[i] and Re[i-1] and psi.
         psi.M[i] = Bi
@@ -175,17 +171,21 @@ end
 """
     do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
                  Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, max_m::Int, debug::Int=0) where T<:Number
+                 sense::Int, m::Int, debug::Int=0) where T<:Number
 
 Do a sweep to locally minimize the energy of `psi` at 1 site per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
 function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, max_m::Int, debug::Int=0) where T<:Number
+                      sense::Int, m::Int, debug::Int=0) where T<:Number
 
     # Manually increase the bond dimension.
-    enlarge_bond_dimension!(psi, max_m)
+    enlarge_bond_dimension!(psi, m)
+    # Update right environment (left environment is updated in the first sweep).
+    for i=reverse(1:psi.L-1)
+        Re[i] = prop_left3(psi.M[i+1], H.W[i+1], psi.M[i+1], Re[i+1])
+    end
 
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
@@ -226,29 +226,18 @@ with 2-site algorithm.
 function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
                             Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
                             m::Int, sense::Int) where T<:Number
-    # Decompose the Mi tensor spanning sites i and i+1 with SVD.
-    Mi = reshape(Mi, size(psi.M[i], 1)*psi.d, psi.d*size(psi.M[i+1], 3))
-    F = svd!(Mi)
-    # Keep the bond dimension stable by removing the lowest singular values.
-    trim = min(m, length(F.S))
-    svals = F.S[1:trim]
-    # Divide sval by norm to keep state normalized.
-    S = Diagonal(svals./norm(svals))
-    if sense == +1
-        U = F.U[:, 1:trim]
-        Vt = S*F.Vt[1:trim, :]
-    else
-        U = F.U[:, 1:trim]*S
-        Vt = F.Vt[1:trim, :]
-    end
-    U = reshape(U, size(psi.M[i], 1), psi.d, length(svals))
-    Vt = reshape(Vt, length(svals), psi.d, size(psi.M[i+1], 3))
+    # # Decompose the Mi tensor spanning sites i and i+1 with SVD.
+    Mi = reshape(Mi, size(psi.M[i], 1), psi.d, psi.d, size(psi.M[i+1], 3))
+    dimcutoff = bond_dimension_with_m(psi.L, i+1, m, psi.d)
+    U, Vt = sense == 1 ? factorize_svd_right(Mi, dimcutoff=dimcutoff) :
+                         factorize_svd_left(Mi, dimcutoff=dimcutoff)
+
     # Update environments and state.
     Le[i+1] = prop_right3(Le[i], U, H.W[i], U)
     Re[i] = prop_left3(Vt, H.W[i+1], Vt, Re[i+1])
     psi.M[i] = U
     psi.M[i+1] = Vt
-    return svals
+    return
 end
 
 """
@@ -287,13 +276,11 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
         Mi = vec(Mi)
 
         # Update left and right environments.
-        svals = update_lr_envs_2s!(psi, i, Mi, H, Le, Re, m, sense)
+        update_lr_envs_2s!(psi, i, Mi, H, Le, Re, m, sense)
 
         # Useful debug information.
         if debug > 1
             println("Site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
-            @printf("Sum of discarded squared singular values: %.2e\n\n",
-                    1. - norm(svals))
         end
     end
     return E
@@ -323,26 +310,25 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         MP = hcat(Mi, α*P)
 
         # Svd.
-        F = svd!(MP)
-        # Trim SVD to the desired bond dimension.
-        new_m = min(bond_dimension_with_m(psi.L, i+1, m, psi.d), length(F.S))
-        U = F.U[:, 1:new_m]
-        svals = F.S[1:new_m]
-        S = Diagonal(svals)
-        # Trim SV in the right part to match the size of psi.M[i+1].
-        SV = S*F.Vt[1:new_m, 1:size(Re[i], 1)]
-        # Divide SV by norm to keep state normalized.
-        SV ./= norm(SV)
+        Ai, SV = factorize_svd_right(
+            reshape(MP, 1, size(MP)...),
+            cutoff=0.,
+            dimcutoff=bond_dimension_with_m(psi.L, i+1, m, psi.d)
+        )
+        # Trim the dimension of SV to match with psi.M[i+1].
+        SV = SV[:, 1:size(Re[i], 1)]
+        # Unbind the bond dimension in Ai.
+        Ai = reshape(Ai, size(Le[i], 1), psi.d, size(Ai, 3))
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
-        Ai = reshape(U, (size(Le[i], 1), psi.d, new_m))
+        # Ai = reshape(U, (size(Le[i], 1), psi.d, new_m))
         psi.M[i] = Ai
         if i < psi.L
             Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
             # Absorb SV into psi.M[i+1].
             Ci = reshape(psi.M[i+1], (size(psi.M[i+1], 1), psi.d*size(psi.M[i+1], 3)))
             Ci = SV*Ci
-            psi.M[i+1] = reshape(Ci, (new_m, psi.d, size(Re[i+1], 1)))
+            psi.M[i+1] = reshape(Ci, (size(SV, 1), psi.d, size(Re[i+1], 1)))
             Re[i] = absorb_Re(Re[i], SV)
         end
     else
@@ -355,26 +341,24 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         MP = vcat(Mi, α*transpose(P))
 
         # Svd.
-        F = svd!(MP)
-        # Trim SVD to the desired bond dimension.
-        new_m = min(bond_dimension_with_m(psi.L, i, m, psi.d), length(F.S))
-        Vt = F.Vt[1:new_m, :]
-        svals = F.S[1:new_m]
-        S = Diagonal(svals)
-        # Trim US in the left part to match the size of psi.M[i-1].
-        US = F.U[1:size(Le[i], 1), 1:new_m]*S
-        # Divide US by norm to keep state normalized.
-        US ./= norm(US)
+        US, Bi = factorize_svd_left(
+            reshape(MP, size(MP)..., 1),
+            cutoff=0.,
+            dimcutoff=bond_dimension_with_m(psi.L, i, m, psi.d)
+        )
+        # Trim the dimension of US to match with psi.M[i-1].
+        US = US[1:size(Le[i], 1), :]
+        # Unbind the bond dimension in Bi.
+        Bi = reshape(Bi, size(Bi, 1), psi.d, size(Re[i], 1))
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
-        Bi = reshape(Vt, (new_m, psi.d, size(Re[i], 1)))
         psi.M[i] = Bi
         if i > 1
             Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
             # Absorb US into psi.M[i-1].
             Ci = reshape(psi.M[i-1], (size(psi.M[i-1], 1)*psi.d, size(psi.M[i-1], 3)))
             Ci = Ci*US
-            psi.M[i-1] = reshape(Ci, (size(Le[i-1], 1), psi.d, new_m))
+            psi.M[i-1] = reshape(Ci, (size(Le[i-1], 1), psi.d, size(US, 2)))
             Le[i] = absorb_Le(Le[i], US)
         end
     end
