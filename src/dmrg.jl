@@ -116,7 +116,7 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, min_opts::MinimizeOpts) where T<:Numb
 
         # Print debug information: energy, variance and their variation.
         if min_opts.debug > 0
-            println("Done sweep $it, bond dimension: $m")
+            print("Done sweep $it, max bond dimension: $(max_bond_dim(psi))")
             @printf("    E: %.6e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
             @printf("    var: %.6e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
         end
