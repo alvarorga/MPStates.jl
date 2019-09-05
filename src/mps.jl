@@ -1,6 +1,7 @@
 export Mps,
        randomMps,
-       show_bond_dims
+       show_bond_dims,
+       max_bond_dim
 
 """
     Mps{T<:Number}
@@ -330,4 +331,13 @@ function show_bond_dims(psi::Mps{<:Number})
     bdims = vcat(1, size.(psi.M, 3))
     println(join(bdims, "-"))
     return
+end
+
+"""
+    max_bond_dim(psi::Mps{<:Number})
+
+Maximum bond dimension of `psi`.
+"""
+function max_bond_dim(psi::Mps{<:Number})
+    return maximum(size.(psi.M, 1))
 end
