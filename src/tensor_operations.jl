@@ -91,11 +91,11 @@ end
 
 Propagate the tensor L through the tensors A, conj(B).
 
- **  *A*    **
- *    *     *
- L       =  L2
- *    *     *
- **  *B*    **
+ ---- A ---     ---
+ |    |         |
+ L    |     =  L2
+ |    |         |
+ ---- B ---     ---
 
 """
 function prop_right2(L::Array{T, 2}, A::Array{T, 3},
@@ -114,11 +114,11 @@ end
 
 Propagate the tensor L through the tensors A, M, conj(B).
 
- **  *A*    **
- *    *     *
- L*  *M* =  new_L*
- *    *     *
- **  *B*    **
+ ---- A ---         ---
+ |    |             |
+ L--- M ---  =  new_L
+ |    |             |
+ ---- B ---         ---
 
 """
 function prop_right3(L::Array{T, 3}, A::Array{T, 3}, M::Array{T, 4},
@@ -135,13 +135,13 @@ end
 
 Propagate the tensor L through the tensors A, M1, M2, conj(B).
 
- **  *A*    **
- *    *     *
- **  *M1*   **
- L    *  =  new_L
- **  *M2*   **
- *    *     *
- **  *B*    **
+ ---- A ---         ---
+ |    |             |
+ |--- M1---         |--
+ L    |      =  new_L
+ |----M2---         |--
+ |    |             |
+ ---- B ---         ---
 
 """
 function prop_right4(L::Array{T, 4}, A::Array{T, 3}, M1::Array{T, 4},
@@ -158,11 +158,12 @@ end
 
 Propagate the tensor R through the tensors A, conj(B).
 
- *A* **     **
-  *   *      *
-      R  =  R2
-  *   *      *
- *B* **     **
+
+ --- A ----      ---
+     |    |        |
+     |    R   =   R2
+     |    |        |
+ --- B ----      ---
 
 """
 function prop_left2(A::Array{T, 3}, B::Array{T, 3},
@@ -181,11 +182,11 @@ end
 
 Propagate the tensor R through the tensors A, M, conj(B).
 
- *A* **     **
-  *   *      *
- *M*  R  =  R2
-  *   *      *
- *B* **     **
+ --- A ----      ---
+     |    |        |
+ --- M -- R   =    new_R
+     |    |        |
+ --- B ----      ---
 
 """
 function prop_left3(A::Array{T, 3}, M::Array{T, 4}, B::Array{T, 3},
@@ -202,13 +203,13 @@ end
 
 Propagate the tensor R through the tensors A, M1, M2, conj(B).
 
- *A*  **     **
-  *    *      *
- *M1* **     **
-  *    R  =   R2
- *M2* **     **
-  *    *      *
- *B*  **     **
+ --- A -----     ----
+     |     |        |
+ --- M1 ---|     ---|
+     |     R   =    new_R
+ --- M2 ---|     ---|
+     |     |        |
+ --- B -----     ----
 
 """
 function prop_left4(A::Array{T, 3}, M1::Array{T, 4}, M2::Array{T, 4},
@@ -225,12 +226,13 @@ end
 
 Propagate the tensor L through the tensors W, conj(M) for the DMRG3S algorithm.
 
-            *
- **         **
- *    *     *
- L*  *W* =  P*
- *    *     *
- **  *M*    **
+ ----               ---
+ |                  |
+ |    |             |----
+ L -- W ---     =   P
+ |    |             |----
+ |    |             |
+ ---- M ---         ---
 
 """
 function prop_right_subexp(L::Array{T, 3}, W::Array{T, 4},
@@ -247,12 +249,14 @@ end
 
 Propagate the tensor R through the tensors W, conj(M) for the DMRG3S algorithm.
 
-             *
-     **     **
-  *   *      *
- *W* *R  =  *P
-  *   *      *
- *M* **     **
+        ----     ----
+           |        |
+           |     ---|
+     |     |   =    P
+ --- W --- R     ---|
+     |     |        |
+     |     |        |
+ --- B -----     ----
 
 """
 function prop_left_subexp(W::Array{T, 4}, M::Array{T, 3},
@@ -267,11 +271,11 @@ end
 
 Absorb M and conj(M) into the left environment Le.
 
- **    *M*       **
- *               *
-Le*           = Le*
- *               *
- **  *conj(M)*   **
+ ----- M ------     ----
+ |                  |
+Le ------------ =  Le --
+ |                  |
+ --- conj(M) --     ----
 
 """
 function absorb_Le(Le::Array{T, 3}, M::Matrix{T}) where T<:Number
@@ -288,11 +292,11 @@ end
 
 Absorb M and conj(M) into the right environment Re.
 
-    *M*    **     **
-            *      *
-           *Re  = *Re
-            *      *
- *conj(M)* **     **
+ ---- M ------     ----
+             |        |
+ ---------- Re  =  -- Re
+             |        |
+ - conj(M) ---     ----
 
 """
 function absorb_Re(Re::Array{T, 3}, M::Matrix{T}) where T<:Number
@@ -310,11 +314,11 @@ end
 
 Build the local Hamiltonian with the left and right environments.
 
- **     **
- *   *   *     *
-Le* *W* *Re = Hi
- *   *   *     *
- **     **
+ ---      ----
+ |     |     |     |
+Le --- W --- Re =  Hi
+ |     |     |     |
+ ---      ----
 
 """
 function build_local_hamiltonian(Le::Array{T, 3}, W::Array{T, 4},
@@ -333,13 +337,6 @@ end
 
 Build the local Hamiltonian with the left and right environments. Pass a
 preallocated cache that can be used to store the final tensor.
-
- **     **
- *   *   *     *
-Le* *W* *Re = Hi
- *   *   *     *
- **     **
-
 """
 function build_local_hamiltonian(
     Le::Array{T, 3}, W::Array{T, 4}, Re::Array{T, 3}, cache::Cache{T}
@@ -373,11 +370,11 @@ end
 
 Build the local Hamiltonian with the left and right environments for DMRG2.
 
- **           **
- *   *    *    *     *
-Le* *W1* *W2* *Re = Hi
- *   *    *    *     *
- **           **
+ ---            ---
+ |    |     |     |    |
+Le -- W1 -- W2 -- Re = Hi
+ |    |     |     |    |
+ ---            ---
 
 """
 function build_local_hamiltonian_2(Le::Array{T, 3}, W1::Array{T, 4},
