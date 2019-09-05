@@ -143,16 +143,17 @@ sites `i` and `i+1`.
 """
 function schmidt_decomp(psi::Mps{T}, i::Int) where T<:Number
     # Write the tensors 1 -> i in left canonical form and the tensors i+1 -> L
-    # in right canonical form. Discard the information in of the unitary
-    # matrices Q.
+    # in right canonical form.
     # Left canonical form.
     L = ones(T, 1, 1)
     for j=1:i
-        L = prop_qr(L, psi.M[j], false)
+        L = absorb_fromleft(L, psi.M[j])
+        _, L = factorize_qr(L)
     end
     R = ones(T, 1, 1)
     for j=reverse(i+1:psi.L)
-        R = prop_lq(psi.M[j], R, false)
+        R = absorb_fromright(psi.M[j], R)
+        R, _ = factorize_lq(R)
     end
     return svdvals!(L*R)
 end
@@ -223,30 +224,32 @@ function enlarge_bond_dimension!(psi::Mps{T}, max_D::Int) where T<:Number
 end
 
 """
-    svd_truncate!(psi::Mps{T}, max_D::Int) where T<:Number
+    svd_truncate!(psi::Mps{T}, m::Int) where T<:Number
 
-Truncate the bond dimension of `psi` by `max_D` using SVD decomposition.
+Truncate the bond dimension of psi to a maximum of m using SVD decomposition.
 """
-function svd_truncate!(psi::Mps{T}, max_D::Int) where T<:Number
+function svd_truncate!(psi::Mps{T}, m::Int) where T<:Number
     US = ones(T, 1, 1)
     for i=reverse(2:psi.L)
-        US, new_M = prop_left_svd(psi.M[i], US, max_D)
-        psi.M[i] = new_M
+        psi.M[i] = absorb_fromright(psi.M[i], US)
+        US, psi.M[i] = factorize_svd_left(psi.M[i],
+                                          cutoff=0.,
+                                          dimcutoff=m,
+                                          normalize_S=false)
     end
     # Contract and normalize last tensor.
-    @tensor new_M[i, s, j] := psi.M[1][i, s, k]*US[k, j]
-    psi.M[1] = new_M./norm(new_M)
-
+    psi.M[1] = absorb_fromright(psi.M[1], US)
+    psi.M[1] ./= norm(psi.M[1])
     return psi
 end
 
 """
-    simplify!(psi::Mps{T}, D::Int;
+    simplify!(psi::Mps{T}, m::Int;
               max_sweeps::Int=500, tol::Float64=1e-6) where T<:Number
 
-Variationally simplify an Mps to make it have bond dimension `D`.
+Variationally simplify psi so that its maximum bond dimension is m.
 """
-function simplify!(psi::Mps{T}, D::Int;
+function simplify!(psi::Mps{T}, m::Int;
                    max_sweeps::Int=500, tol::Float64=1e-6) where T<:Number
     # Normalize state if it is not normalized.
     norm_psi = norm(psi)
@@ -257,7 +260,7 @@ function simplify!(psi::Mps{T}, D::Int;
     obj_M = deepcopy(psi.M)
     obj = Mps(obj_M, psi.L, psi.d)
     # Reduce the bond dimension of the state to the wanted one.
-    svd_truncate!(psi, D)
+    svd_truncate!(psi, m)
 
     # Create left and right environments.
     Le = fill(ones(T, 1, 1), psi.L)

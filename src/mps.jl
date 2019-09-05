@@ -276,8 +276,8 @@ Write an Mps in left canonical form.
 function make_left_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Number
     R = ones(T, 1, 1)
     for i=1:psi.L-1
-        A, R = prop_qr(R, psi.M[i])
-        psi.M[i] = A
+        psi.M[i] = absorb_fromleft(R, psi.M[i])
+        psi.M[i], R = factorize_qr(psi.M[i])
     end
     # Last tensor.
     @tensor A_end[i, s, j] := R[i, k]*psi.M[end][k, s, j]
@@ -296,8 +296,8 @@ Write an Mps in right canonical form.
 function make_right_canonical!(psi::Mps{T}, normalize::Bool=true) where T<:Number
     L = ones(T, 1, 1)
     for i=reverse(2:psi.L)
-        L, B = prop_lq(psi.M[i], L)
-        psi.M[i] = B
+        psi.M[i] = absorb_fromright(psi.M[i], L)
+        L, psi.M[i] = factorize_lq(psi.M[i])
     end
     # Normalize and append last tensor.
     @tensor B_end[i, s, j] := psi.M[1][i, s, k]*L[k, j]

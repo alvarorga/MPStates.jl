@@ -1,89 +1,33 @@
 """
-    prop_qr(R::Array{T, 2}, A::Array{T, 3}, return_Q=true) where T<:Number
+    absorb_fromleft(A::Array{T, 2}, B::Array{T, 3}) where T<:Number
 
-From two tensors of rank 2 and 3: -R-A-, contract and perform QR decomposition,
-returning the equivalent tensors: -Q-R2, with ranks 3 and 2.
+Absorb the matrix A in B where A is at the left of B.
+
+ -- A -- B -- = -- C --
+         |         |
+
 """
-function prop_qr(R::Array{T, 2}, A::Array{T, 3}, return_Q=true) where T<:Number
-    @tensor RA[i, s, j] := R[i, k]*A[k, s, j]
-    RA = reshape(RA, (size(RA, 1)*size(RA, 2), size(RA, 3)))
-    rQ, R2 = qr(RA)
-    return_Q || return R2
-    rQ = Matrix(rQ)
-    Q = reshape(rQ, (size(R, 1), size(A, 2), size(rQ, 2)))
-    return Q, R2
+function absorb_fromleft(A::Array{T, 2}, B::Array{T, 3}) where T<:Number
+    a1, a2 = size(A)
+    b1, b2, b3 = size(B)
+    B = reshape(B, b1, b2*b3)
+    return reshape(A*B, a1, b2, b3)
 end
 
 """
-    prop_lq(A::Array{T, 3}, L::Array{T, 2}, return_Q=true) where T<:Number
+    absorb_fromright(A::Array{T, 3}, B::Array{T, 2}) where T<:Number
 
-From two tensors of rank 3 and 2: -A-L-, contract and perform LQ decomposition,
-returning the equivalent tensors: -L2-Q-, with ranks 2 and 3.
-"""
-function prop_lq(A::Array{T, 3}, L::Array{T, 2}, return_Q=true) where T<:Number
-    @tensor AL[i, s, j] := A[i, s, k]*L[k, j]
-    AL = reshape(AL, (size(AL, 1), size(AL, 2)*size(AL, 3)))
-    L2, rQ = lq(AL)
-    return_Q || return L2
-    rQ = Matrix(rQ)
-    Q = reshape(rQ, (size(rQ, 1), size(A, 2), size(L, 2)))
-    return L2, Q
-end
+Absorb the matrix B in A where B is at the right of A.
+
+ -- A -- B -- = -- C --
+    |              |
 
 """
-    prop_right_svd(SVt::Array{T, 2}, A::Array{T, 3}, m::Int=-1) where T<:Number
-
-From two tensors of rank 2 and 3: -SVt-A-, contract and perform SVD
-decomposition, returning the equivalent tensors: -U-SVt2-, with ranks 3 and 2.
-Also truncate to bond dimension m if maximum is reached.
-"""
-function prop_right_svd(SVt::Array{T, 2}, A::Array{T, 3},
-                        m::Int=-1) where T<:Number
-    @tensor new_A[i, s, j] := SVt[i, k]*A[k, s, j]
-    new_A = reshape(new_A, (size(new_A, 1)*size(new_A, 2), size(new_A, 3)))
-    F = svd(new_A)
-    if m > 0 && length(F.S) > m
-        U = F.U[:, 1:m]
-        svals = F.S[1:m]
-        # Normalize state.
-        S = Diagonal(svals)/norm(svals)
-        Vt = F.Vt[1:m, :]
-    else
-        U = F.U
-        S = Diagonal(F.S)
-        Vt = F.Vt
-    end
-    SVt2 = S*Vt
-    U = reshape(U, (size(SVt, 1), size(A, 2), size(SVt2, 1)))
-    return U, SVt2
-end
-
-"""
-    prop_left_svd(A::Array{T, 3}, US::Array{T, 2}, m::Int=-1) where T<:Number
-
-From two tensors of rank 3 and 2: -A-US-, contract and perform SVD
-decomposition, returning the equivalent tensors: -US2-Vt-, with ranks 2 and 3.
-Also truncate to bond dimension m if maximum is reached.
-"""
-function prop_left_svd(A::Array{T, 3}, US::Array{T, 2},
-                       m::Int=-1) where T<:Number
-    @tensor new_A[i, s, j] := A[i, s, k]*US[k, j]
-    new_A = reshape(new_A, (size(new_A, 1), size(new_A, 2)*size(new_A, 3)))
-    F = svd(new_A)
-    if m > 0 && length(F.S) > m
-        U = F.U[:, 1:m]
-        svals = F.S[1:m]
-        # Normalize state.
-        S = Diagonal(svals)/norm(svals)
-        Vt = F.Vt[1:m, :]
-    else
-        U = F.U
-        S = Diagonal(F.S)
-        Vt = F.Vt
-    end
-    US2 = U*S
-    Vt = reshape(Vt, (size(US2, 2), size(A, 2), size(US, 2)))
-    return US2, Vt
+function absorb_fromright(A::Array{T, 3}, B::Array{T, 2}) where T<:Number
+    a1, a2, a3 = size(A)
+    b1, b2 = size(B)
+    A = reshape(A, a1*a2, a3)
+    return reshape(A*B, a1, a2, b2)
 end
 
 """

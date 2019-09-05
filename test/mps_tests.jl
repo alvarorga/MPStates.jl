@@ -1,3 +1,7 @@
+using Test, LinearAlgebra, MPStates
+
+@testset "Initialization of the Mps class" begin
+
 """Test whether a tensor product is left canonical."""
 function is_left_canonical(A::Vector{Array{T, 3}}) where T
     output = true
@@ -24,7 +28,6 @@ function is_right_canonical(A::Vector{Array{T, 3}}) where T
     return output
 end
 
-@testset "Initialization of the Mps class" begin
 @testset "make tensor state left & right canonical" begin
     # Test if state is initialized in left canonical form if it is normalized.
     rtest1 = MPStates.testMps("rtest1")
