@@ -160,6 +160,22 @@ function add_ops!(Op::Mpo{T}, op_i::AbstractMatrix{<:Number},
 end
 
 """
+    add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
+             weights::AbstractMatrix{T};
+             ferm_op::String="Id") where T<:Number
+
+Add operators to an Mpo acting on two sites.
+
+New operator is: Op + ∑ weights[i, j]*op_i*op_j.
+"""
+function add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
+                  weights::AbstractMatrix{T};
+                  ferm_op::String="Id") where T<:Number
+    return add_ops!(Op, str_to_op(op_i), str_to_op(op_j), weights,
+                    ferm_op=str_to_op(ferm_op, Op.d))
+end
+
+"""
     compress_mpo!(Op::Mpo{<:Number})
 
 Remove unnecessary bond dimensions in an Mpo.
@@ -201,133 +217,8 @@ function compress_mpo!(Op::Mpo{<:Number})
     return Op
 end
 
-
-"""
-    add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
-             weights::AbstractMatrix{T};
-             ferm_op::String="Id") where T<:Number
-
-Add operators to an Mpo acting on two sites.
-
-New operator is: Op + ∑ weights[i, j]*op_i*op_j.
-"""
-function add_ops!(Op::Mpo{T}, op_i::String, op_j::String,
-                  weights::AbstractMatrix{T};
-                  ferm_op::String="Id") where T<:Number
-    return add_ops!(Op, str_to_op(op_i), str_to_op(op_j), weights,
-                    ferm_op=str_to_op(ferm_op, Op.d))
-end
-
-"""
-    Mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
-
-Initialize and Mpo with bond dimension `d=2` with hopping matrix `J` and
-an interaction matrix `V = \\sum V_{ij} n_i n_j`. The statistics can be either
-fermionic or bosonic.
-"""
-function Mpo(L::Int, J::Array{T, 2}, V::Array{T, 2}, is_fermionic::Bool) where T<:Number
-    size(J) == (L, L) || throw("J has not the correct dimensions.")
-    size(V) == (L, L) || throw("V has not the correct dimensions.")
-
-    W = Vector{Array{T, 4}}()
-    Id = Matrix{T}(I, 2, 2)
-    # 1 - 2ni operator.
-    Z = Matrix{T}(I, 2, 2)
-    Z[2, 2] = -one(T)
-
-    # Write basic tensors.
-    Wi = zeros(T, 2+2L, 2, 2, 2+2L)
-    # Initial and end state Id propagators.
-    Wi[1, :, :, 1] = Id
-    Wi[2, :, :, 2] = Id
-    for i=1:L
-        push!(W, deepcopy(Wi))
-    end
-
-    # Local terms: J[i, i]*n_i.
-    for i=1:L
-        W[i][1, 2, 2, 2] = J[i, i]
-    end
-
-    # Keep trace of final occupied indices in Mpo.
-    occ_ix = zeros(Int, 2+2L)
-    occ_ix[1] = L
-    occ_ix[2] = L
-
-    # Correlations J_ij*c^dagger_i*c_j.
-    for i=1:L
-        norm(J[i, :]) < 1e-8 && continue
-        ix_initial = min(i, findfirst(abs.(J[i, :]) .> 1e-8))
-        ix_final = max(i, findlast(abs.(J[i, :]) .> 1e-8))
-        ix = findfirst(ix_initial .>= occ_ix)
-        occ_ix[ix] = ix_final
-
-        for j=1:i-1 # i > j.
-            abs(J[i, j]) <= 1e-8 && continue
-            # Operator c_j.
-            W[j][1, 2, 1, ix] = J[i, j]
-            # Operator Id for bosons or 1-2n for fermions.
-            for k=j+1:i-1
-                if is_fermionic
-                    W[k][ix, :, :, ix] = Z
-                else
-                    W[k][ix, :, :, ix] = Id
-                end
-            end
-            # Operator c^dagger_i.
-            W[i][ix, 1, 2, 2] = one(T)
-        end
-        for j=i+1:L # i < j.
-            abs(J[i, j]) < 1e-8 && continue
-            # Operator c^dagger_i.
-            W[i][1, 1, 2, ix] = one(T)
-            # Operator Id for bosons or 1-2n for fermions.
-            for k=i+1:j-1
-                if is_fermionic
-                    W[k][ix, :, :, ix] = Z
-                else
-                    W[k][ix, :, :, ix] = Id
-                end
-            end
-            # Operator c_j.
-            W[j][ix, 2, 1, 2] = J[i, j]
-        end
-    end
-
-    # Interactions V_ij*n_i*n_j.
-    for i=2:L
-        norm(V[i, :] .+ V[:, i]) < 1e-8 && continue
-        ix_initial = min(i, findfirst(abs.(V[i, :] .+ V[:, i]) .>= 1e-8))
-        ix_final = max(i, findlast(abs.(V[i, :] .+ V[:, i]) .>= 1e-8))
-        ix = findfirst(ix_initial .>= occ_ix)
-        occ_ix[ix] = ix_final
-
-        for j=1:i-1 # j < i.
-            abs(V[i, j] + V[j, i]) < 1e-8 && continue
-            # Operator n_j.
-            W[j][1, 2, 2, ix] = V[i, j] + V[j, i]
-            # Operator Id.
-            for k=j+1:i-1
-                W[k][ix, :, :, ix] = Id
-            end
-            # Operator n_i.
-            W[i][ix, 2, 2, 2] = one(T)
-        end
-    end
-
-    # Trim the unfilled region of the W tensors.
-    ix_trim = findlast(occ_ix .> 0)
-    for i=1:L
-        W[i] = W[i][1:ix_trim, :, :, 1:ix_trim]
-    end
-
-    W[1] = W[1][1:1, :, :, :]
-    W[end] = W[end][:, :, :, 2:2]
-
-    return Mpo(W, L, 2)
-end
-
 import Base.display
+
 function Base.display(O::Mpo{T}) where T<:Number
     println("MPO:")
     println("   Type: $(eltype(O.W[1]))")
