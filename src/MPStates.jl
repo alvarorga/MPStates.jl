@@ -10,5 +10,6 @@ include("./cache.jl")
 include("./tensor_contractions.jl")
 include("./tensor_factorizations.jl")
 include("./dmrg.jl")
+include("./dmrg_opts.jl")
 
 end # module MPStates
