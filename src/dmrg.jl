@@ -122,10 +122,10 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
                       sense::Int, m::Int, debug::Int=0) where T<:Number
 
     # Manually increase the bond dimension.
-    enlarge_bond_dimension!(psi, m)
-    # Update right environment (left environment is updated in the first sweep).
-    for i=reverse(1:psi.L-1)
-        Re[i] = prop_left3(psi.M[i+1], H.W[i+1], psi.M[i+1], Re[i+1])
+    enlarge_bond_dimension!(psi, dmrg_opts.maxm[s])
+    # Update left environment (right environment is updated in the first sweep).
+    for i=2:psi.L
+        Le[i] = prop_right3(Le[i-1], psi.M[i-1], H.W[i-1], psi.M[i-1])
     end
 
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
