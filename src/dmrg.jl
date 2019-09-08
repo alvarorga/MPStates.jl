@@ -1,9 +1,9 @@
-export minimize!
+export dmrg!
 
 """
-    minimize!(psi::Mps{T}, H::Mpo{T}, dmrg_opts::DMRGOpts) where T<:Number
+    dmrg!(psi::Mps{T}, H::Mpo{T}, dmrg_opts::DMRGOpts) where {T<:Number}
 
-Minimize energy of psi with respect to H.
+Minimize energy of psi with respect to H using a DMRG algorithm.
 
 Warning: the Hamiltonian is assumed to be Hermitian. This function will silently
 fail if that is not the case.
@@ -12,7 +12,7 @@ Output:
     - `E::Vector{Float64}`: energy of psi after every sweep.
     - `var::Vector{Float64}`: variance of psi after every sweep.
 """
-function minimize!(psi::Mps{T}, H::Mpo{T}, dmrg_opts::DMRGOpts) where T<:Number
+function dmrg!(psi::Mps{T}, H::Mpo{T}, dmrg_opts::DMRGOpts) where {T<:Number}
     # Create left and right environments.
     Le = fill(ones(T, 1, 1, 1), psi.L)
     Re = fill(ones(T, 1, 1, 1), psi.L)
@@ -142,9 +142,6 @@ function do_sweep_1s!(psi::Mps{T},
     for i=2:psi.L
         Le[i] = prop_right3(Le[i-1], psi.M[i-1], H.W[i-1], psi.M[i-1])
     end
-    # for i=reverse(1:psi.L-1)
-    #     Re[i] = prop_left3(psi.M[i+1], H.W[i+1], psi.M[i+1], Re[i+1])
-    # end
 
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
@@ -170,7 +167,6 @@ function do_sweep_1s!(psi::Mps{T},
             println("site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
         end
     end
-    show_bond_dims(psi)
     return E
 end
 
