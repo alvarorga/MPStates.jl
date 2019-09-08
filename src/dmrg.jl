@@ -1,19 +1,18 @@
 export minimize!
 
 """
-    minimize!(psi::Mps{T}, H::Mpo{T}, minopts::MinimizeOpts) where T<:Number
+    minimize!(psi::Mps{T}, H::Mpo{T}, dmrg_opts::DMRGOpts) where T<:Number
 
-Minimize energy of `psi` with respect to `H`.
+Minimize energy of psi with respect to H.
 
 Warning: the Hamiltonian is assumed to be Hermitian. This function will silently
 fail if that is not the case.
 
 Output:
-    - `E`: energy of `psi` after every right + left sweep.
-    - `var`: variance of `psi` after every right + left sweep.
+    - `E::Vector{Float64}`: energy of psi after every sweep.
+    - `var::Vector{Float64}`: variance of psi after every sweep.
 """
-function minimize!(psi::Mps{T}, H::Mpo{T}, min_opts::MinimizeOpts) where T<:Number
-
+function minimize!(psi::Mps{T}, H::Mpo{T}, dmrg_opts::DMRGOpts) where T<:Number
     # Create left and right environments.
     Le = fill(ones(T, 1, 1, 1), psi.L)
     Re = fill(ones(T, 1, 1, 1), psi.L)
@@ -22,51 +21,48 @@ function minimize!(psi::Mps{T}, H::Mpo{T}, min_opts::MinimizeOpts) where T<:Numb
         Le[i] = prop_right3(Le[i-1], psi.M[i-1], H.W[i-1], psi.M[i-1])
     end
 
-    # Compute energy of state and variance at each sweep. Iteration 1 is just
+    # Compute energy of state and variance at each sweep. Sweep 1 is just
     # the computation of the energy and the variance.
-    # Parameter to control subspace expansion in "DMRG3S" algorithm.
-    α = 1e-6
-    E = [real(expected(H, psi))]
-    var = [m_variance(H, psi)]
-    it = 2
-    # Variable to observe if the variance has stopped decreasing at all.
-    var_is_stuck = false
-    # Variable to see if the tolerace of the variance has been reached.
-    reached_tol = false
+    E = Float64[]
+    var = Float64[]
+    # Noise term for DMRG3S.
+    α = dmrg_opts.α
     # Cache to store temporaries.
     cache = Cache(Vector{AbstractArray{T}}())
-
-    while !reached_tol && it <= min_opts.max_sweeps && !var_is_stuck
-        # Maximum bond dimension in this sweep.
-        m = min_opts.sweep_dims[it]
+    for s=1:dmrg_opts.nsweeps
         # Do left and right sweeps.
-        if min_opts.algorithm == "DMRG1"
-            Es = do_sweep_1s!(psi, H, Le, Re, -1, m, min_opts.debug)
-            Es = do_sweep_1s!(psi, H, Le, Re, +1, m, min_opts.debug)
-        elseif min_opts.algorithm == "DMRG2"
-            Es = do_sweep_2s!(psi, H, Le, Re, -1, m, cache, min_opts.debug)
-            Es = do_sweep_2s!(psi, H, Le, Re, +1, m, cache, min_opts.debug)
-        elseif min_opts.algorithm == "DMRG3S"
-            Es, α = do_sweep_3s!(psi, H, Le, Re, -1, m, α, cache, min_opts.debug)
-            Es, α = do_sweep_3s!(psi, H, Le, Re, +1, m, α, cache, min_opts.debug)
+        time = @elapsed begin
+        if dmrg_opts.algorithm == "DMRG1"
+            Es = do_sweep_1s!(psi, H, Le, Re, -1, s, dmrg_opts)
+            Es = do_sweep_1s!(psi, H, Le, Re, +1, s, dmrg_opts)
+        elseif dmrg_opts.algorithm == "DMRG2"
+            Es = do_sweep_2s!(psi, H, Le, Re, -1, s, cache, dmrg_opts)
+            Es = do_sweep_2s!(psi, H, Le, Re, +1, s, cache, dmrg_opts)
+        elseif dmrg_opts.algorithm == "DMRG3S"
+            Es = do_sweep_3s!(psi, H, Le, Re, -1, s, cache, α, dmrg_opts)
+            Es = do_sweep_3s!(psi, H, Le, Re, +1, s, cache, α, dmrg_opts)
+        end
         end
 
-        # Update energy and variance of `psi` after the sweep.
+        # Update energy and variance of psi after the sweep.
         push!(E, Es)
         push!(var, real(m_variance(H, psi)))
 
         # Print debug information: energy, variance and their variation.
-        if min_opts.debug > 0
-            println("Done sweep $it, max bond dimension: $(max_bond_dim(psi))")
-            @printf("    E: %.6e, ΔE: %.2e\n", E[it], E[it]-E[it-1])
-            @printf("    var: %.6e, Δvar: %.2e\n", var[it], var[it]-var[it-1])
+        if dmrg_opts.show_trace > 0
+            println("Done sweep $s, max bond dimension: $(max_bond_dim(psi))")
+            @printf("    E: %.6e, ΔE: %.2e\n",
+                    E[s], E[s]-(s > 1 ? E[s-1] : 1e5))
+            @printf("    var: %.6e, Δvar: %.2e\n",
+                    var[s], var[s]-(s > 1 ? var[s-1] : 1e5))
+            println("    Elapsed time: $time s")
         end
 
-        # Update minimization loop control parameters. Prevent stopping if
-        # maximum bond dimension has not been reached yet.
-        var_is_stuck = abs(var[it] - var[it-1]) < 1e-8 && m == maximum(min_opts.sweep_dims)
-        reached_tol = var[it] <= min_opts.tol && m == maximum(min_opts.sweep_dims)
-        it += 1
+        # Check for convergence of variance.
+        if s > 1 && abs(var[s] - var[s-1]) < dmrg_opts.dmrg_tol
+            println("The variance of psi has converged. Finished DMRG.")
+            break
+        end
     end
     return E, var
 end
@@ -76,33 +72,44 @@ end
 #
 
 """
-    update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
-                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                       sense::Int) where T<:Number
+    update_lr_envs_1s!(psi::Mps{T},
+                       H::Mpo{T},
+                       Le::Vector{Array{T, 3}},
+                       Re::Vector{Array{T, 3}},
+                       sense::Int,
+                       s::Int,
+                       i::Int,
+                       Mi::Vector{T},
+                       dmrg_opts::DMRGOpts) where {T<:Number}
 
 Update the left and right environments after the local Hamiltonian is minimized.
 """
-function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
-                            Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                            sense::Int) where T<:Number
+function update_lr_envs_1s!(psi::Mps{T},
+                            H::Mpo{T},
+                            Le::Vector{Array{T, 3}},
+                            Re::Vector{Array{T, 3}},
+                            sense::Int,
+                            s::Int,
+                            i::Int,
+                            Mi::Vector{T},
+                            dmrg_opts::DMRGOpts) where {T<:Number}
     if sense == +1
         Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
-        Ai, R = factorize_svd_right(Mi, cutoff=0.)
+        psi.M[i], R = factorize_svd_right(Mi, cutoff=dmrg_opts.cutoff[s])
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
-        psi.M[i] = Ai
+        psi.M[i] = psi.M[i]
         if i < psi.L
-            Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
+            Le[i+1] = prop_right3(Le[i], psi.M[i], H.W[i], psi.M[i])
             Re[i] = absorb_Re(Re[i], R)
         end
     else
         Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
-        L, Bi = factorize_svd_left(Mi, cutoff=0.)
+        L, psi.M[i] = factorize_svd_left(Mi, cutoff=dmrg_opts.cutoff[s])
 
         # Update left and right environments at Le[i] and Re[i-1] and psi.
-        psi.M[i] = Bi
         if i > 1
-            Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
+            Re[i-1] = prop_left3(psi.M[i], H.W[i], psi.M[i], Re[i])
             Le[i] = absorb_Le(Le[i], L)
         end
     end
@@ -110,16 +117,24 @@ function update_lr_envs_1s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
 end
 
 """
-    do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
-                 Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, m::Int, debug::Int=0) where T<:Number
+    do_sweep_1s!(psi::Mps{T},
+                 H::Mpo{T},
+                 Le::Vector{Array{T, 3}},
+                 Re::Vector{Array{T, 3}},
+                 sense::Int,
+                 s::Int,
+                 dmrg_opts::DMRGOpts) where {T<:Number}
 
 Do a sweep to locally minimize the energy of `psi` at 1 site per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
-function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
-                      Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, m::Int, debug::Int=0) where T<:Number
+function do_sweep_1s!(psi::Mps{T},
+                      H::Mpo{T},
+                      Le::Vector{Array{T, 3}},
+                      Re::Vector{Array{T, 3}},
+                      sense::Int,
+                      s::Int,
+                      dmrg_opts::DMRGOpts) where {T<:Number}
 
     # Manually increase the bond dimension.
     enlarge_bond_dimension!(psi, dmrg_opts.maxm[s])
@@ -127,6 +142,9 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
     for i=2:psi.L
         Le[i] = prop_right3(Le[i-1], psi.M[i-1], H.W[i-1], psi.M[i-1])
     end
+    # for i=reverse(1:psi.L-1)
+    #     Re[i] = prop_left3(psi.M[i+1], H.W[i+1], psi.M[i+1], Re[i+1])
+    # end
 
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
@@ -139,16 +157,20 @@ function do_sweep_1s!(psi::Mps{T}, H::Mpo{T},
     for i in sweep_sites
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i])
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR)
+        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR,
+                           maxiter=dmrg_opts.lanczos_iters)
         E = real(array_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
-        update_lr_envs_1s!(psi, i, Mi, H, Le, Re, sense)
+        update_lr_envs_1s!(psi, H, Le, Re, sense, s, i, Mi, dmrg_opts)
 
         # Useful debug information.
-        debug > 1 && println("site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
+        if dmrg_opts.show_trace > 1
+            println("site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
+        end
     end
+    show_bond_dims(psi)
     return E
 end
 
@@ -157,43 +179,63 @@ end
 #
 
 """
-    update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
-                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                       m::Int, sense::Int) where T<:Number
+    update_lr_envs_2s!(psi::Mps{T},
+                       H::Mpo{T},
+                       Le::Vector{Array{T, 3}},
+                       Re::Vector{Array{T, 3}},
+                       sense::Int,
+                       s::Int,
+                       i::Int,
+                       Mi::Vector{T},
+                       dmrg_opts::DMRGOpts) where {T<:Number}
 
 Update the left and right environments after the local Hamiltonian is minimized
 with 2-site algorithm.
 """
-function update_lr_envs_2s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
-                            Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                            m::Int, sense::Int) where T<:Number
-    # # Decompose the Mi tensor spanning sites i and i+1 with SVD.
-    Mi = reshape(Mi, size(psi.M[i], 1), psi.d, psi.d, size(psi.M[i+1], 3))
-    dimcutoff = bond_dimension_with_m(psi.L, i+1, m, psi.d)
-    U, Vt = sense == 1 ? factorize_svd_right(Mi, dimcutoff=dimcutoff) :
-                         factorize_svd_left(Mi, dimcutoff=dimcutoff)
+function update_lr_envs_2s!(psi::Mps{T},
+                            H::Mpo{T},
+                            Le::Vector{Array{T, 3}},
+                            Re::Vector{Array{T, 3}},
+                            sense::Int,
+                            s::Int,
+                            i::Int,
+                            Mi::Vector{T},
+                            dmrg_opts::DMRGOpts) where {T<:Number}
 
-    # Update environments and state.
-    Le[i+1] = prop_right3(Le[i], U, H.W[i], U)
-    Re[i] = prop_left3(Vt, H.W[i+1], Vt, Re[i+1])
-    psi.M[i] = U
-    psi.M[i+1] = Vt
+    # Decompose the Mi tensor spanning sites i and i+1 with SVD.
+    Mi = reshape(Mi, size(psi.M[i], 1), psi.d, psi.d, size(psi.M[i+1], 3))
+    dimcutoff = bond_dimension_with_m(psi.L, i+1, dmrg_opts.maxm[s], psi.d)
+    psi.M[i], psi.M[i+1] = sense == 1 ?
+        factorize_svd_right(Mi, dimcutoff=dimcutoff) :
+        factorize_svd_left(Mi, dimcutoff=dimcutoff)
+
+    # Update environments.
+    Le[i+1] = prop_right3(Le[i], psi.M[i], H.W[i], psi.M[i])
+    Re[i] = prop_left3(psi.M[i+1], H.W[i+1], psi.M[i+1], Re[i+1])
     return
 end
 
 """
-    do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
-                 Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, m::Int,
-                 cache::Cache{T}, debug::Int=0) where T<:Number
+    do_sweep_2s!(psi::Mps{T},
+                 H::Mpo{T},
+                 Le::Vector{Array{T, 3}},
+                 Re::Vector{Array{T, 3}},
+                 sense::Int,
+                 s::Int,
+                 cache::Cache{T},
+                 dmrg_opts::DMRGOpts) where {T<:Number}
 
 Do a sweep to locally minimize the energy of `psi` at 2 sites per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
-function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
-                      Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, m::Int,
-                      cache::Cache{T}, debug::Int=0) where T<:Number
+function do_sweep_2s!(psi::Mps{T},
+                      H::Mpo{T},
+                      Le::Vector{Array{T, 3}},
+                      Re::Vector{Array{T, 3}},
+                      sense::Int,
+                      s::Int,
+                      cache::Cache{T},
+                      dmrg_opts::DMRGOpts) where {T<:Number}
 
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
@@ -212,15 +254,16 @@ function do_sweep_2s!(psi::Mps{T}, H::Mpo{T},
         M2 = reshape(deepcopy(psi.M[i+1]),
                      (size(psi.M[i+1], 1), size(psi.M[i+1], 2)*size(psi.M[i+1], 3)))
         v0 = vec(M1*M2)
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
+        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0,
+                           maxiter=dmrg_opts.lanczos_iters)
         E = real(array_E[1])
         Mi = vec(Mi)
 
         # Update left and right environments.
-        update_lr_envs_2s!(psi, i, Mi, H, Le, Re, m, sense)
+        update_lr_envs_2s!(psi, H, Le, Re, sense, s, i, Mi, dmrg_opts)
 
         # Useful debug information.
-        if debug > 1
+        if dmrg_opts.show_trace > 1
             println("Site: $i, size(Hi): $(size(Hi)), Ei: $(E)")
         end
     end
@@ -232,15 +275,28 @@ end
 #
 
 """
-    update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
-                       Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                       m::Int, α::Float64, sense::Int) where T<:Number
+    update_lr_envs_3s!(psi::Mps{T},
+                       H::Mpo{T},
+                       Le::Vector{Array{T, 3}},
+                       Re::Vector{Array{T, 3}},
+                       sense::Int,
+                       s::Int,
+                       i::Int,
+                       Mi::Vector{T},
+                       dmrg_opts::DMRGOpts) where {T<:Number}
 
 Update the left and right environments after the local Hamiltonian is minimized.
 """
-function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
-                            Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                            m::Int, α::Float64, sense::Int) where T<:Number
+function update_lr_envs_3s!(psi::Mps{T},
+                            H::Mpo{T},
+                            Le::Vector{Array{T, 3}},
+                            Re::Vector{Array{T, 3}},
+                            sense::Int,
+                            s::Int,
+                            i::Int,
+                            Mi::Vector{T},
+                            α::Float64,
+                            dmrg_opts::DMRGOpts) where {T<:Number}
     if sense == +1
         # Subspace expansion.
         Mi = reshape(Mi, (size(Le[i], 1), psi.d, size(Re[i], 1)))
@@ -251,26 +307,21 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         MP = hcat(Mi, α*P)
 
         # Svd.
-        Ai, SV = factorize_svd_right(
-            reshape(MP, 1, size(MP)...),
-            cutoff=0.,
-            dimcutoff=bond_dimension_with_m(psi.L, i+1, m, psi.d)
-        )
+        cutoff = dmrg_opts.cutoff[s]
+        dimcutoff = bond_dimension_with_m(psi.L, i+1, dmrg_opts.maxm[s], psi.d)
+        psi.M[i], SV = factorize_svd_right(reshape(MP, 1, size(MP)...),
+                                           cutoff=cutoff, dimcutoff=dimcutoff)
         # Trim the dimension of SV to match with psi.M[i+1].
         SV = SV[:, 1:size(Re[i], 1)]
-        # Unbind the bond dimension in Ai.
-        Ai = reshape(Ai, size(Le[i], 1), psi.d, size(Ai, 3))
+        # Unbind the bond dimension in psi.M[i].
+        psi.M[i] = reshape(psi.M[i], size(Le[i], 1), psi.d, size(psi.M[i], 3))
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
-        # Ai = reshape(U, (size(Le[i], 1), psi.d, new_m))
-        psi.M[i] = Ai
         if i < psi.L
-            Le[i+1] = prop_right3(Le[i], Ai, H.W[i], Ai)
-            # Absorb SV into psi.M[i+1].
-            Ci = reshape(psi.M[i+1], (size(psi.M[i+1], 1), psi.d*size(psi.M[i+1], 3)))
-            Ci = SV*Ci
-            psi.M[i+1] = reshape(Ci, (size(SV, 1), psi.d, size(Re[i+1], 1)))
+            Le[i+1] = prop_right3(Le[i], psi.M[i], H.W[i], psi.M[i])
             Re[i] = absorb_Re(Re[i], SV)
+            # Update this tensor to provide a good initial vector later in eigs.
+            psi.M[i+1] = absorb_fromleft(SV, psi.M[i+1])
         end
     else
         # Subspace expansion.
@@ -282,43 +333,48 @@ function update_lr_envs_3s!(psi::Mps{T}, i::Int, Mi::Vector{T}, H::Mpo{T},
         MP = vcat(Mi, α*transpose(P))
 
         # Svd.
-        US, Bi = factorize_svd_left(
-            reshape(MP, size(MP)..., 1),
-            cutoff=0.,
-            dimcutoff=bond_dimension_with_m(psi.L, i, m, psi.d)
-        )
+        cutoff = dmrg_opts.cutoff[s]
+        dimcutoff = bond_dimension_with_m(psi.L, i, dmrg_opts.maxm[s], psi.d)
+        US, psi.M[i] = factorize_svd_left(reshape(MP, size(MP)..., 1),
+                                          cutoff=cutoff, dimcutoff=dimcutoff)
         # Trim the dimension of US to match with psi.M[i-1].
         US = US[1:size(Le[i], 1), :]
-        # Unbind the bond dimension in Bi.
-        Bi = reshape(Bi, size(Bi, 1), psi.d, size(Re[i], 1))
+        # Unbind the bond dimension in psi.M[i].
+        psi.M[i] = reshape(psi.M[i], size(psi.M[i], 1), psi.d, size(Re[i], 1))
 
         # Update left and right environments at Le[i+1] and Re[i] and psi.
-        psi.M[i] = Bi
         if i > 1
-            Re[i-1] = prop_left3(Bi, H.W[i], Bi, Re[i])
-            # Absorb US into psi.M[i-1].
-            Ci = reshape(psi.M[i-1], (size(psi.M[i-1], 1)*psi.d, size(psi.M[i-1], 3)))
-            Ci = Ci*US
-            psi.M[i-1] = reshape(Ci, (size(Le[i-1], 1), psi.d, size(US, 2)))
+            Re[i-1] = prop_left3(psi.M[i], H.W[i], psi.M[i], Re[i])
             Le[i] = absorb_Le(Le[i], US)
+            # Update this tensor to provide a good initial vector later in eigs.
+            psi.M[i-1] = absorb_fromright(psi.M[i-1], US)
         end
     end
     return psi
 end
 
 """
-    do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
-                 Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                 sense::Int, m::Int, α::Float64,
-                 cache::Cache{T}, debug::Int=0) where T<:Number
+    do_sweep_3s!(psi::Mps{T},
+                 H::Mpo{T},
+                 Le::Vector{Array{T, 3}},
+                 Re::Vector{Array{T, 3}},
+                 sense::Int,
+                 s::Int,
+                 cache::Cache{T},
+                 dmrg_opts::DMRGOpts) where {T<:Number}
 
 Do a sweep to locally minimize the energy of `psi` at 1 site per step. The
 direction of the sweep is given by `sense = +1, -1`.
 """
-function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
-                      Le::Vector{Array{T, 3}}, Re::Vector{Array{T, 3}},
-                      sense::Int, m::Int, α::Float64,
-                      cache::Cache{T}, debug::Int=0) where T<:Number
+function do_sweep_3s!(psi::Mps{T},
+                      H::Mpo{T},
+                      Le::Vector{Array{T, 3}},
+                      Re::Vector{Array{T, 3}},
+                      sense::Int,
+                      s::Int,
+                      cache::Cache{T},
+                      α::Float64,
+                      dmrg_opts::DMRGOpts) where {T<:Number}
 
     sense == 1 || sense == -1 || throw("`Sense` must be either `+1` or `-1`.")
     # Energy before the sweep starts. Depends on the sweep sense, assume the
@@ -332,27 +388,31 @@ function do_sweep_3s!(psi::Mps{T}, H::Mpo{T},
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
         v0 = vec(deepcopy(psi.M[i]))
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0)
+        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0,
+                           maxiter=dmrg_opts.lanczos_iters)
         E1 = real(array_E[1])
         delta_E1 = E1-E
         Mi = vec(Mi)
 
         # Update left and right environments.
-        update_lr_envs_3s!(psi, i, Mi, H, Le, Re, m, α, sense)
+        update_lr_envs_3s!(psi, H, Le, Re, sense, s, i, Mi, α, dmrg_opts)
 
         # Compute new energy and update α.
         E = sense == +1 ? sum(real(Re[i].*Le[i+1])) : sum(real(Re[i-1].*Le[i]))
         delta_E = E-E1
-        if -delta_E/delta_E1 > 0.3/log(m)
+        if -delta_E/delta_E1 > 0.3/log(dmrg_opts.maxm[s])
             α /= 2.
-        elseif 0. < -delta_E/delta_E1 < min(1/m, 0.1)
+        elseif 0. < -delta_E/delta_E1 < min(1/dmrg_opts.maxm[s], 0.1)
             α *= 2.
         end
 
         # Useful debug information.
-        debug > 1 && println("site: $i, size(Hi): $(size(Hi)), Ei: $(E), α: $(α)")
-        debug > 2 && @printf("ΔE_0: %.3e, ΔE_0/ΔE_T: %.3e\n", delta_E1,
-                             delta_E/delta_E1)
+        if dmrg_opts.show_trace > 1
+            println("site: $i, size(Hi): $(size(Hi)), Ei: $(E), α: $(dmrg_opts.α)")
+        end
+        if dmrg_opts.show_trace > 2
+            @printf("ΔE_0: %.3e, ΔE_0/ΔE_T: %.3e\n", delta_E1, delta_E/delta_E1)
+        end
     end
-    return E, α
+    return E
 end
