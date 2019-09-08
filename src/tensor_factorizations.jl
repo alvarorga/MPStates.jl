@@ -39,10 +39,10 @@ end
 
 Do SVD with cutoff truncation and normalization of singular values.
 """
-function do_svd_with_options(M::AbstractMatrix{<:Number},
-                             cutoff::Float64,
-                             dimcutoff::Int,
-                             normalize_S::Bool)
+function do_svd_with_options(M::AbstractMatrix{<:Number};
+                             cutoff::Float64=1e-8,
+                             dimcutoff::Int=1000,
+                             normalize_S::Bool=true)
     F = svd(M)
     S = F.S
     ix_cutoff = min(findlast(S .> cutoff), dimcutoff)
@@ -57,82 +57,90 @@ function do_svd_with_options(M::AbstractMatrix{<:Number},
 end
 
 """
-    factorize_svd_right(M::Array{<:Number, 3};
-                        cutoff::Float64=1e-8,
-                        dimcutoff::Int=2000,
-                        normalize_S::Bool=true)
+    factorize_svd_right(M::AbstractMatrix{<:Number}; kwargs...)
 
-SVD factorization of M tensor reshapen to (M[1]*M[2], M[3]*1).
+SVD factorization of M matrix (U unitary).
+
+ -- M -- = -- U -- SVt --
 """
-function factorize_svd_right(M::Array{<:Number, 3};
-                             cutoff::Float64=1e-8,
-                             dimcutoff::Int=2000,
-                             normalize_S::Bool=true)
-    U, SVt = factorize_svd_right(reshape(M, size(M)..., 1),
-                                 cutoff=cutoff,
-                                 dimcutoff=dimcutoff,
-                                 normalize_S=normalize_S)
-    SVt = reshape(SVt, size(SVt, 1), size(SVt, 2))
+function factorize_svd_right(M::AbstractMatrix{<:Number}; kwargs...)
+    m1, m2 = size(M)
+    U, S, Vt = do_svd_with_options(M; kwargs...)
+    SVt = S*Vt
     return U, SVt
 end
 
 """
-    factorize_svd_left(M::Array{<:Number, 3};
-                       cutoff::Float64=1e-8,
-                       dimcutoff::Int=2000,
-                       normalize_S::Bool=true)
+    factorize_svd_left(M::AbstractMatrix{<:Number}; kwargs...)
 
-SVD factorization of M tensor reshapen to (1*M[1], M[2]*M[3]).
+SVD factorization of M matrix (Vt unitary).
+
+ -- M -- = -- US -- Vt --
 """
-function factorize_svd_left(M::Array{<:Number, 3};
-                            cutoff::Float64=1e-8,
-                            dimcutoff::Int=2000,
-                            normalize_S::Bool=true)
-    US, Vt = factorize_svd_left(reshape(M, 1, size(M)...),
-                                cutoff=cutoff,
-                                dimcutoff=dimcutoff,
-                                normalize_S=normalize_S)
-    US = reshape(US, size(US, 2), size(US, 3))
+function factorize_svd_left(M::AbstractMatrix{<:Number}; kwargs...)
+    m1, m2 = size(M)
+    U, S, Vt = do_svd_with_options(M; kwargs...)
+    US = U*S
     return US, Vt
 end
 
 """
-    factorize_svd_right(M::Array{<:Number, 4};
-                        cutoff::Float64=1e-8,
-                        dimcutoff::Int=2000,
-                        normalize_S::Bool=true)
+    factorize_svd_right(M::Array{<:Number, 3}; kwargs...)
 
-SVD factorization of M tensor reshapen to (M[1]*M[2], M[3]*M[4]).
+SVD factorization of M tensor (U unitary).
+
+ -- M -- = -- U -- SVt --
+    |         |
 """
-function factorize_svd_right(M::Array{<:Number, 4};
-                             cutoff::Float64=1e-8,
-                             dimcutoff::Int=2000,
-                             normalize_S::Bool=true)
-    m1, m2, m3, m4 = size(M)
-    M = reshape(M, m1*m2, m3*m4)
-    U, S, Vt = do_svd_with_options(M, cutoff, dimcutoff, normalize_S)
-    SVt = S*Vt
+function factorize_svd_right(M::Array{<:Number, 3}; kwargs...)
+    m1, m2, m3 = size(M)
+    U, SVt = factorize_svd_right(reshape(M, m1*m2, m3); kwargs...)
     U = reshape(U, m1, m2, size(U, 2))
-    SVt = reshape(SVt, size(S, 1), m3, m4)
     return U, SVt
 end
 
 """
-    factorize_svd_right(M::Array{<:Number, 4}
-                        cutoff::Float64=1e-8,
-                        dimcutoff::Int=2000,
-                        normalize_S::Bool=true)
+    factorize_svd_left(M::Array{<:Number, 3}; kwargs...)
 
-SVD factorization of M tensor reshapen to (M[1]*M[2], M[3]*M[4]).
+SVD factorization of M tensor (Vt unitary).
+
+ -- M -- = -- US -- Vt --
+    |               |
 """
-function factorize_svd_left(M::Array{<:Number, 4};
-                            cutoff::Float64=1e-8,
-                            dimcutoff::Int=2000,
-                            normalize_S::Bool=true)
+function factorize_svd_left(M::Array{<:Number, 3}; kwargs...)
+    m1, m2, m3 = size(M)
+    US, Vt = factorize_svd_left(reshape(M, m1, m2*m3); kwargs...)
+    Vt = reshape(Vt, size(Vt, 1), m2, m3)
+    return US, Vt
+end
+
+"""
+    factorize_svd_right(M::Array{<:Number, 4}; kwargs...)
+
+SVD factorization of M tensor (U unitary).
+
+ -- M -- = -- U -- SVt --
+   | |        |     |
+"""
+function factorize_svd_right(M::Array{<:Number, 4}; kwargs...)
     m1, m2, m3, m4 = size(M)
-    M = reshape(M, m1*m2, m3*m4)
-    U, S, Vt = do_svd_with_options(M, cutoff, dimcutoff, normalize_S)
-    US = U*S
+    U, SVt = factorize_svd_right(reshape(M, m1*m2, m3*m4); kwargs...)
+    U = reshape(U, m1, m2, size(U, 2))
+    SVt = reshape(SVt, size(SVt, 1), m3, m4)
+    return U, SVt
+end
+
+"""
+    factorize_svd_left(M::Array{<:Number, 4}; kwargs...)
+
+SVD factorization of M tensor (Vt unitary).
+
+ -- M -- = -- US -- Vt --
+   | |        |     |
+"""
+function factorize_svd_left(M::Array{<:Number, 4}; kwargs...)
+    m1, m2, m3, m4 = size(M)
+    US, Vt = factorize_svd_left(reshape(M, m1*m2, m3*m4); kwargs...)
     US = reshape(US, m1, m2, size(US, 2))
     Vt = reshape(Vt, size(Vt, 1), m3, m4)
     return US, Vt
