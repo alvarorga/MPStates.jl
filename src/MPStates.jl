@@ -11,5 +11,6 @@ include("./mpo.jl")
 include("./mpo_operations.jl")
 include("./dmrg_opts.jl")
 include("./dmrg.jl")
+include("./hamiltonians.jl")
 
 end # module MPStates
