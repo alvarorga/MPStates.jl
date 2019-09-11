@@ -154,10 +154,16 @@ function do_sweep_1s!(psi::Mps{T},
     for i in sweep_sites
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i])
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR,
-                           maxiter=dmrg_opts.lanczos_iters)
-        E = real(array_E[1])
-        Mi = vec(Mi)
+
+        Hi = Hermitian(Hi)
+        f(x::Vector{T}) = Hi*x
+        v0 = rand(size(Hi, 1))
+        v0 ./= norm(v0)
+        evals, evecs, info = eigsolve(
+            f, v0, 1, :SR, KrylovKit.Lanczos(maxiter=dmrg_opts.lanczos_iters)
+        )
+        E = real(evals[1])
+        Mi = vec(evecs[1])
 
         # Update left and right environments.
         update_lr_envs_1s!(psi, H, Le, Re, sense, s, i, Mi, dmrg_opts)
@@ -250,10 +256,14 @@ function do_sweep_2s!(psi::Mps{T},
         M2 = reshape(deepcopy(psi.M[i+1]),
                      (size(psi.M[i+1], 1), size(psi.M[i+1], 2)*size(psi.M[i+1], 3)))
         v0 = vec(M1*M2)
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0,
-                           maxiter=dmrg_opts.lanczos_iters)
-        E = real(array_E[1])
-        Mi = vec(Mi)
+
+        Hi = Hermitian(Hi)
+        f(x::Vector{T}) = Hi*x
+        evals, evecs, _ = eigsolve(
+            f, v0, 1, :SR, KrylovKit.Lanczos(maxiter=dmrg_opts.lanczos_iters)
+        )
+        E = real(evals[1])
+        Mi = vec(evecs[1])
 
         # Update left and right environments.
         update_lr_envs_2s!(psi, H, Le, Re, sense, s, i, Mi, dmrg_opts)
@@ -384,11 +394,14 @@ function do_sweep_3s!(psi::Mps{T},
         # Compute local minimum.
         Hi = build_local_hamiltonian(Le[i], H.W[i], Re[i], cache)
         v0 = vec(deepcopy(psi.M[i]))
-        array_E, Mi = eigs(Hermitian(Hi), nev=1, which=:SR, v0=v0,
-                           maxiter=dmrg_opts.lanczos_iters)
-        E1 = real(array_E[1])
+        Hi = Hermitian(Hi)
+        f(x::Vector{T}) = Hi*x
+        evals, evecs, _ = eigsolve(
+            f, v0, 1, :SR, KrylovKit.Lanczos(maxiter=dmrg_opts.lanczos_iters)
+        )
+        E1 = real(evals[1])
         delta_E1 = E1-E
-        Mi = vec(Mi)
+        Mi = vec(evecs[1])
 
         # Update left and right environments.
         update_lr_envs_3s!(psi, H, Le, Re, sense, s, i, Mi, α, dmrg_opts)

@@ -1,6 +1,6 @@
 module MPStates
 
-using LinearAlgebra, TensorOperations, Random, HDF5, Printf, Arpack
+using LinearAlgebra, TensorOperations, Random, HDF5, Printf, KrylovKit
 
 include("./cache.jl")
 include("./tensor_contractions.jl")
