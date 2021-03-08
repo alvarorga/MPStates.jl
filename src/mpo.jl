@@ -1,5 +1,6 @@
 export Mpo,
-       add_ops!
+       add_ops!,
+       number_projector
 
 """
     Mpo{T<:Number}
@@ -267,6 +268,53 @@ function str_to_op(str_op::String, d::Int=0)
         throw("Operator $str_op is not defined.")
     end
 
+end
+
+"""
+    number_projector(::Type{T}, L::Int, N::Int) where T<:Number
+
+Build a projector over the number of particles N for MPS with d=2.
+
+The projector P consists on the sum of every combination
+n_{i1} * n_{i2} * ... * n_{iN} * (1-n_{iN+1}) * ... * (1-n_{iL})
+This operator clearly satisfies P*P = P and projects any state into the
+space of states with N particles and L-N holes.
+"""
+function number_projector(T::Type, L::Int, N::Int)
+    d = 2
+
+    # Particle number operator, equivalent to a^dagger*a = n.
+    np = zeros(T, d, d) 
+    np[2, 2] = one(T)
+    # Hole number operator, equivalent to a*a^dagger = 1-n.
+    nh = zeros(T, d, d)
+    nh[1, 1] = one(T)
+
+    W = Vector{Array{T, 4}}(undef, L)
+    for i=1:N
+        nstates_left = min(i, L-N+1)
+        nstates_right = min(i+1, L-N+1)
+        Wi = zeros(T, nstates_left, d, d, nstates_right)
+        for j=1:nstates_right-1
+            Wi[j, :, :, j] = np
+            Wi[j, :, :, j+1] = nh
+        end
+        W[i] = Wi
+    end
+    for i=N+1:L
+        nstates_left = min(L-i+2, N+1)
+        nstates_right = min(L-i+1, N+1)
+        Wi = zeros(T, nstates_left, d, d, nstates_right)
+        for j=1:nstates_right
+            Wi[j, :, :, j] = nh
+            if nstates_left > nstates_right
+                Wi[j+1, :, :, j] = np
+            end
+        end
+        W[i] = Wi
+    end
+
+    return Mpo{T}(W, L, d)
 end
 
 import Base.display
